@@ -1,0 +1,43 @@
+{
+  "calibration_file": "config/bead_pull_calibration.json",
+  "disk_spacings_mm": [],
+  "comment": "Enter the settings and measured calibration for your setup.",
+  "output": {
+    "root": "data/spider_bead_pull_runs",
+    "directory": null
+  },
+  "scan": {
+    "step_size_m": 0.01,
+    "settle_s": 0.5,
+    "sub_thread_indices": null,
+    "length_m": null,
+    "include_endpoint": true,
+    "home_first": true
+  },
+  "stepper": {
+    "port": null,
+    "baud": 9600,
+    "motor": 1,
+    "configure": true,
+    "microsteps": 8,
+    "acceleration": 1000,
+    "speed": 500,
+    "driving_voltage": 6.8,
+    "holding_voltage": 2.0,
+    "unwind_direction": "counterclockwise",
+    "min_position_steps": 0,
+    "max_position_steps": 150000,
+    "state_file": null,
+    "max_step_magnitude": 500000
+  },
+  "vna": {
+    "ip_address": "VNA_ADDRESS",
+    "channel": 1,
+    "port_a": 2,
+    "port_b": 2,
+    "start_freq_Hz": 20000000000.0,
+    "stop_freq_Hz": 22000000000.0,
+    "points": 401,
+    "averages": 1
+  }
+}

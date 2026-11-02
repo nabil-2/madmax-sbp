@@ -6,6 +6,15 @@ The first workflow, **SBP verification**, checks how well a few lines from a ful
 bead-pull grid reproduce its transverse field and coherent transverse integrals.
 Open [sbp_verification.ipynb](sbp_verification.ipynb) and run it from top to bottom.
 
+For measurement preparation and acquisition:
+
+- [sbp_calibration.ipynb](sbp_calibration.ipynb): record each sub-thread's XYZ
+  endpoints and motor step anchors, then save the calibration.
+- [sbp_acquisition.ipynb](sbp_acquisition.ipynb): preview the scan, acquire VNA
+  traces and inspect the saved run.
+
+Both notebooks start in simulation mode and run without instruments.
+
 ## Setup
 
 With [uv](https://docs.astral.sh/uv/):
@@ -32,9 +41,75 @@ Run Jupyter from this repository's root.
   field extraction, line selection, complex Gaussian fit and integration.
 - `src/verification_plots.py`: field maps and transverse-integral comparisons.
 - `sbp_verification.ipynb`: configuration, analysis steps and plots.
+- `src/calibration.py`: per-sub-thread position conversion and calibration files.
+- `src/motor.py`: real/simulated motor, stored position/home and travel limits.
+- `src/acquisition.py`: configuration, VNA readout, scan execution and logging.
 
-Functions live in `src/`; the notebook imports and uses them. There are no
-scheduler, cache-manager or hardware dependencies in this workflow.
+Functions live in `src/`; the notebooks import and use them. Hardware dependencies
+are optional and are only needed when connecting real instruments.
+
+## Calibration and data acquisition
+
+Run the two notebooks in order: calibration, then acquisition. Their default
+simulation uses four example sub-threads and writes under `outputs/`. The VNA
+test mode stores zero traces and is only a check of scan execution and logging.
+
+For a real setup, install the instrument dependencies and make a local config:
+
+```bash
+uv sync --extra notebook --extra hardware
+cp config/measurement_config.example.json config/measurement_config.json
+```
+
+Set the serial port, VNA address and sweep, motor profile/direction, and measured
+travel limits in that file. The example step limits are illustrative. In the
+calibration notebook, replace the example XYZ coordinates with your measured
+endpoints, choose their unit and set `SIMULATE=False`. Capture both motor step
+anchors for every sub-thread and save the resulting calibration. Then use the
+same local configuration in the acquisition notebook.
+
+Each sub-thread's scale is its step span divided by its XYZ endpoint separation.
+Coordinate fields saved as `*_xyz_m` and scan distances are in metres. The
+calibration keeps the old schema (version 2), including start/end margins.
+
+The real motor keeps its logical position and manually chosen home in
+`~/.madmax_bead_pull/motor_state.json`, shared with the original software.
+`stepper.state_file` can select another file. This rig has no hardware limit
+switch; home is a manually established reference. The original travel-limit,
+move-size, timeout and emergency-stop handling is retained. Background jogging
+keeps the notebook STOP button responsive. After an emergency stop, re-establish
+the position with `motor.set_position(known_steps)` before further motion.
+
+Acquisition also runs from the command line. A quick instrument-free example:
+
+```bash
+uv run python -c "from src.acquisition import create_demo_config; create_demo_config('outputs/demo')"
+uv run python -m src.acquisition --config outputs/demo/measurement_config.json --dry-run
+uv run python -m src.acquisition --config outputs/demo/measurement_config.json --simulate --vna-testmode
+```
+
+For a real run, use your local config and omit the simulation flags. Each run
+writes a timestamped folder under `output.root` unless `output.directory` is set.
+Existing scan files are refused unless overwrite is explicitly enabled.
+
+| File | Contents |
+| --- | --- |
+| `s11_traces.h5` | Complex `s_parameter` with axes `(trace, frequency)` and `frequencies_Hz` |
+| `scan_log.csv`, `scan_log.jsonl` | Reached bead positions, XYZ coordinates, timestamps and trace indices |
+| `scan_manifest.json` | Configuration, calibration, completion status and measured-point count |
+| `vna_log.txt` | Communication log when a real VNA is connected |
+
+The historical HDF5 filename is retained; attributes identify the actual
+S-parameter (normally S22, ports 2/2). The instrument's sweep is read back before
+writing the frequency axis. Kernel Interrupt aborts a scan and cleanup releases
+the motor and VNA. Local configurations, measurement files and generated outputs
+are excluded from Git.
+
+Motor/calibration routines and the VNA writer are ported from
+`spider-bead-pull-ai/src/bead_pull_controller.py` and
+`spider-bead-pull-ai/run_bead_pull_measurement.py`. The implementation was checked
+against the original with the same calibration and a short simulated scan;
+physical instrument operation has not been tested here.
 
 ## Measurement input
 
