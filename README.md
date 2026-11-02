@@ -184,3 +184,47 @@ identical gated traces, fields, fitted parameters and ET arrays for 1–4 lines
 at 19.494, 19.500 and 19.506 GHz. The notebook was also executed on all four
 original grids using its nine-frequency initial selection. No full-spectrum
 reanalysis is claimed by this quick check.
+
+## 1D measurement analysis
+
+Open [sbp_1d_analysis.ipynb](sbp_1d_analysis.ipynb). It retains the plots and their
+order from `pipeline_overview.ipynb`: setup, raw complex traces, reference
+subtraction, centre finding, radial fields and maps, transverse integration,
+longitudinal fits, geometry shifts, boost/residual spectra and the full-grid
+comparison. Figure titles and labels remain editable in each plot cell.
+Rendered figures are saved in the notebook for viewing on GitHub.
+
+- `src/sbp_analysis.py`: raw line data to radial fields and transverse integrals.
+- `src/fit_1D.py`: finite-bead longitudinal model and four geometry fits.
+- `src/pipeline_plots.py`: the original measurement and 1D figures.
+- `src/full_bead_comparison.py`, `src/full_bead_model.py`: read the saved full-pull
+  results and reproduce their model/normalization for comparison.
+
+The four cases keep geometry fixed, adjust disk gaps, adjust thread z, or adjust
+both. This longitudinal model has no disk-tilt degrees of freedom; disk and
+thread tilts belong to the 3D workflow. The corrected nominal mirror gap is
+**7.803 mm**. No uncertainty estimate is claimed by this original 1D fitter.
+
+The default notebook reads local copies of these original inputs/results:
+
+```text
+data/spider_bead_pull_runs/run_20261025_141003/
+    scan_manifest.json, scan_log.csv, s11_traces.h5
+data/outputs/run_20261025_141003/
+    integrated_fields.npz, integrated_fields_fit_1D_{fixed,gaps,positions,both}.npz
+    geometry_correction.json
+    history/nominal_gap_8p803mm/   # comparison with previous nominal geometry
+data/reference_data/beam_measurements/beam_fit_S31.csv
+data/full_bead_pull/result_bf_21_0.jld2
+```
+
+These files are deliberately excluded from Git. They have been copied into the
+local checkout; another checkout needs its own measurement files to rerun the
+notebook. The saved figures remain viewable without them. The final optional
+cell recomputes the fields and all four fits using **20–22 GHz only**. The
+initial saved 1D results match the original notebook's full-sweep fit; selecting
+20–22 GHz for those figures does not change its fitted geometry.
+
+Quick migration check: the numerical modules are copied unchanged; plotting uses SciPy
+trapezoidal integration for compatibility with older notebook kernels; the new import reproduced saved fitted fields at 20.7, 20.825 and
+21 GHz to numerical precision. The notebook was executed with the copied data.
