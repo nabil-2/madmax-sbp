@@ -6,6 +6,12 @@ The first workflow, **SBP verification**, checks how well a few lines from a ful
 bead-pull grid reproduce its transverse field and coherent transverse integrals.
 Open [sbp_verification.ipynb](sbp_verification.ipynb) and run it from top to bottom.
 
+Measurement analysis notebooks:
+
+- [sbp_1d_analysis.ipynb](sbp_1d_analysis.ipynb): original measurement and 1D plot sequence.
+- [sbp_3d_analysis.ipynb](sbp_3d_analysis.ipynb): disk and thread full-tilt analysis,
+  using the original full-tilt report figures.
+
 For measurement preparation and acquisition:
 
 - [sbp_calibration.ipynb](sbp_calibration.ipynb): record each sub-thread's XYZ
@@ -27,7 +33,7 @@ uv run jupyter lab
 Or use Python 3.11 or newer:
 
 ```bash
-python -m pip install numpy scipy h5py matplotlib tqdm jupyterlab ipykernel
+python -m pip install numpy scipy h5py matplotlib pandas tqdm jupyterlab ipykernel
 python -m jupyter lab
 ```
 
@@ -228,3 +234,77 @@ initial saved 1D results match the original notebook's full-sweep fit; selecting
 Quick migration check: the numerical modules are copied unchanged; plotting uses SciPy
 trapezoidal integration for compatibility with older notebook kernels; the new import reproduced saved fitted fields at 20.7, 20.825 and
 21 GHz to numerical precision. The notebook was executed with the copied data.
+
+
+## 3D analysis with disk and thread tilts
+
+Open [sbp_3d_analysis.ipynb](sbp_3d_analysis.ipynb). It starts with boost spectra,
+then shows measured profiles, the external beam input, complex fitted chords,
+finite-bead line responses, model electric-field maps, nominal/fitted geometry,
+residuals, and the full-pull comparison. The figures use the original corrected
+full-tilt report plotting code, including separate disk projection and adjustment
+figures. Notebook outputs are included; large measurements and banks are not.
+
+The likelihood uses corrected **complex S22 samples directly**, at their actual
+recorded x/y and fitted z. It fits three disk shifts, two slopes per disk and two
+endpoint heights per straight thread: **17 shared geometry parameters**. Per
+frequency it solves analytically for a common complex response coefficient and
+per-thread complex affine backgrounds. Boost follows from the model's receive
+coupling multiplied by the magnitude of that coefficient. It is not fitted as
+an independent spectral curve.
+
+- `src/analysis_3d_inputs.py`: raw run → corrected S22, profile diagnostics,
+  selected-frequency mask; beam CSV → six-profile input parameters.
+- `src/receive_field.py`, `src/tilted_disks.py`: modal propagation and tilted
+  scattering interfaces, using the original BoostFractor matrix-bank format.
+- `src/exterior_field.py`: variable-height angular-spectrum continuation for T0.
+- `src/bead_response.py`: the original finite-sphere Mie response.
+- `src/analysis_3d.py`: physical scan chords, fit constraints, variable projection,
+  SLSQP fitting and saved result arrays.
+- `src/analysis_3d_exports.py`: conditional residual-bootstrap bands and physical
+  electric-field maps at horizontal thread midpoint sections.
+- `src/analysis_3d_plots.py`: the original full-tilt report figures.
+- `src/build_bank.jl`: CPU/CUDA propagation-bank construction.
+
+The independent beam scan contains six Gaussian **magnitude** profiles at scan
+z = 50–100 mm. Their coordinate origin is not registered to the spider mirror.
+The model combines them at the outer reference face, assumes flat phase and
+normalizes their whole-plane power to 1 W. Preliminary Gaussian fits to spider
+chords select the 33 geometry-fit bins; they do not supply a rotated field to
+the 3D model. The radial reconstruction in the 1D notebook is a separate path.
+
+Local data in `data/3d/` comprise `measurement_inputs.npz`, `beam_prior.npz`,
+`disk_tilts_threads.npz`, `conditional_bands.npz`, `field_maps.npz` and `bank/`.
+Their original relative paths and SHA-256 hashes are recorded in
+[config/analysis_3d_provenance.json](config/analysis_3d_provenance.json).
+[config/full_tilt_geometry.json](config/full_tilt_geometry.json) keeps the fitted
+17-vector, units, corrected nominal positions and measured relative slopes.
+The notebook has optional cells to prepare inputs, run a new single-start fit,
+and export results. These switches default to off; loading a notebook does not
+start an optimization. The original saved result used multiple starts.
+
+The 120-mode local bank contains the 33 geometry-fit frequencies. A bank with
+all 401 bins is needed to recompute a 20–22 GHz dense curve; the included local
+saved spectrum already covers that band. To build a bank with Julia 1.10+:
+
+```bash
+julia --project=julia -e 'using Pkg; Pkg.add(PackageSpec(url="https://github.com/nabil-2/BoostFractor.jl", rev="acf4f491fe633ab05c3b8abbafe6d6288e42aba0"))'
+julia --project=julia src/build_bank.jl config/3d_bank.toml
+```
+
+For GPU construction, add CUDA to that environment with
+`julia --project=julia -e 'using Pkg; Pkg.add("CUDA")'`, then change `backend` to
+`"cuda"` in the configuration and run on a GPU node. The config writes banks
+under `data/3d/`; edit its frequency list for a dense export. Python optimization
+uses the resulting small modal matrices on CPU. The builder preserves the
+original matrix calculation; it was not rerun during this migration.
+
+Quick numerical check: at all 33 geometry-fit frequencies, this port reproduces
+the original full-tilt boost, common scale, predicted complex S22, directional
+fields and pointwise heights. Relative L2 differences were below **2×10⁻¹⁴**.
+Raw preprocessing also reproduced every saved input array, including the 33-bin
+mask; the six-profile beam parameters were bit-identical. Both analysis notebooks
+were executed with copied original measurements/results.
+This migration does not establish a better physical fit: fitted bounds remain
+active, weak-thread residuals remain large, and the shaded bootstrap interval
+keeps geometry, beam and calibration fixed.

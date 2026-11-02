@@ -1,0 +1,52 @@
+{
+  "origin_repository": "https://github.com/nabil-2/spider-bead-pull-ai",
+  "scope": "Port of corrected 7.803 mm full-tilt analysis; no fresh optimization claimed",
+  "files": {
+    "data/3d/measurement_inputs.npz": {
+      "sha256": "3411b3a05d0feb29528e6f26108dcc8cd98449c152ee20d82acd2b2b40a641c2",
+      "bytes": 2154619,
+      "origin_path": "src-ai/three_d/inputs/measurement_inputs.npz"
+    },
+    "data/3d/conditional_bands.npz": {
+      "sha256": "ab9f9eae1ba5822ba6bb453451d399ee123cf008ffd2c0e0030c73b754962da6",
+      "bytes": 17561,
+      "origin_path": "src-ai/refit_7p803/tilted_threads/results/conditional_bands.npz"
+    },
+    "data/3d/field_maps.npz": {
+      "sha256": "db6a6722fb9d9108842b3e1333ecd25c33cb685f550d0c752ce23b2908db752a",
+      "bytes": 1223599,
+      "origin_path": "src-ai/refit_7p803/tilted_threads/results/field_maps.npz"
+    },
+    "data/3d/disk_tilts_threads.npz": {
+      "sha256": "a56d5efd386a42c013db92fc580ed20415e964466d5d0678e8032124061ac4d0",
+      "bytes": 9971892,
+      "origin_path": "src-ai/refit_7p803/tilted_threads/results/full401/disk_tilts_threads.npz"
+    },
+    "data/3d/beam_prior.npz": {
+      "sha256": "455b3ef951438ec7119c90d40fbe81d1f55930fa2c29e420ea540ca6331f7105",
+      "bytes": 148686,
+      "origin_path": "src-ai/three_d/measurements/omc/beam_prior.npz"
+    }
+  },
+  "bank": {
+    "origin_path": "src-ai/three_d/tilted_threads/results/bank_fit_l7",
+    "local_path": "data/3d/bank",
+    "manifest_sha256": "a76e5a6d7dc489c6290f37b535032d0266b54bf5613666249dbf934ef1334bfc",
+    "BoostFractor_commit": "acf4f491fe633ab05c3b8abbafe6d6288e42aba0"
+  },
+  "migration_check": {
+    "frequency_count": 33,
+    "relative_L2_errors": {
+      "beta2_conditional": 4.385659861163269e-15,
+      "relative_residual": 5.975676735646292e-15,
+      "quadratic_scale": 1.574386067877126e-14,
+      "beta2_received_geometry_only": 1.7948670799273665e-14,
+      "predicted_S22": 1.8298290451386978e-16,
+      "template_S22": 1.7550560507766397e-14,
+      "directional_waves_V_per_m": 9.112538052164517e-15,
+      "z_m": 0.0
+    },
+    "raw_preprocessing_all_arrays_reproduced": true,
+    "beam_slice_parameters_bit_identical": true
+  }
+}

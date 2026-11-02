@@ -1,0 +1,157 @@
+{
+  "parameter_order": [
+    "D1_dz_mm",
+    "D2_dz_mm",
+    "D3_dz_mm",
+    "D1_slope_x_mrad",
+    "D1_slope_y_mrad",
+    "D2_slope_x_mrad",
+    "D2_slope_y_mrad",
+    "D3_slope_x_mrad",
+    "D3_slope_y_mrad",
+    "T0_A_dz_mm",
+    "T0_B_dz_mm",
+    "T1_A_dz_mm",
+    "T1_B_dz_mm",
+    "T2_A_dz_mm",
+    "T2_B_dz_mm",
+    "T3_A_dz_mm",
+    "T3_B_dz_mm"
+  ],
+  "parameters": [
+    0.1744138029538027,
+    0.2804865950878075,
+    -0.1426169989976548,
+    0.4018620530175993,
+    -3.0557195378470015,
+    1.9607411022377872,
+    3.5069283683030137,
+    -5.0,
+    0.44058425434487836,
+    2.0,
+    1.9999999999372897,
+    -2.0,
+    -2.0,
+    -2.0,
+    -1.8925185348805673,
+    2.0,
+    -0.6736240780608223
+  ],
+  "disk_nearface_z_mm": [
+    7.977413802953802,
+    17.936486595087807,
+    27.368383001002343
+  ],
+  "disk_slopes_mrad": [
+    [
+      0.4018620530175993,
+      -3.0557195378470015
+    ],
+    [
+      1.9607411022377872,
+      3.5069283683030137
+    ],
+    [
+      -5.0,
+      0.44058425434487836
+    ]
+  ],
+  "thread_endpoint_z_mm": [
+    [
+      34.011,
+      34.01099999993729
+    ],
+    [
+      21.0835,
+      21.0835
+    ],
+    [
+      11.2295,
+      11.336981465119432
+    ],
+    [
+      5.9015,
+      3.2278759219391775
+    ]
+  ],
+  "thread_endpoint_xy_m": [
+    [
+      [
+        0.075,
+        0.19
+      ],
+      [
+        -0.075,
+        -0.19
+      ]
+    ],
+    [
+      [
+        0.07,
+        -0.19
+      ],
+      [
+        -0.07,
+        0.19
+      ]
+    ],
+    [
+      [
+        0.075,
+        0.19
+      ],
+      [
+        -0.0749999999999999,
+        -0.1899999999999999
+      ]
+    ],
+    [
+      [
+        0.07,
+        -0.19
+      ],
+      [
+        -0.0699999999999999,
+        0.1899999999999999
+      ]
+    ]
+  ],
+  "fit_threads": [
+    0,
+    1,
+    2,
+    3
+  ],
+  "pooled_relative_rms": 0.2776705562136228,
+  "uncertainty_scope": "Conditional complex-residual bootstrap with geometry and beam fixed; excludes geometry, beam, calibration and model uncertainty.",
+  "endpoint_definition": "A=min and B=max retained signed scan coordinate; actual recorded XY endpoints, not measured mechanical supports.",
+  "nominal_disk_nearface_z_mm": [
+    7.803,
+    17.656,
+    27.511
+  ],
+  "nominal_thread_z_mm": [
+    32.011,
+    23.0835,
+    13.2295,
+    3.9015
+  ],
+  "scope": "Saved conditional result, not an independently validated geometry.",
+  "nominal_disk_slopes_mrad": [
+    [
+      0.0018324466666666665,
+      -0.0007977094709321282
+    ],
+    [
+      -0.0010753444444444435,
+      0.00939364668878879
+    ],
+    [
+      0.01515427777777778,
+      0.022055615516433133
+    ]
+  ],
+  "fit_details": {
+    "endpoint_adjustment_bound_mm": 2.0
+  }
+}

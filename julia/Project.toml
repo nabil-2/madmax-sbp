@@ -1,0 +1,5 @@
+[deps]
+BoostFractor = "222d2961-0b53-58be-99ce-9613a82efb32"
+
+[compat]
+julia = "1.10"

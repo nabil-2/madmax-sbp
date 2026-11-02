@@ -6,3 +6,4 @@ outputs/
 *.pyc
 config/measurement_config.json
 config/bead_pull_calibration.json
+julia/Manifest.toml

@@ -1,7 +1,7 @@
 [project]
 name = "madmax-sbp"
 version = "0.1.0"
-description = "MADMAX spider bead-pull calibration, acquisition and verification"
+description = "MADMAX spider bead-pull calibration, acquisition, verification and 1D/3D analysis"
 requires-python = ">=3.11"
 dependencies = ["numpy>=2.0", "scipy>=1.13", "h5py>=3.10", "matplotlib>=3.8", "tqdm>=4.66", "pandas>=2"]
 
