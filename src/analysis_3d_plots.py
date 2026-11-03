@@ -11,6 +11,7 @@ from matplotlib.lines import Line2D
 from matplotlib.ticker import MaxNLocator
 from .receive_field import NOM_DISKS_MM
 from .analysis_3d import NOM_Z_MM
+from .plot_text import render_text
 
 TITLE = "Disk tilts + sloped threads"
 CASE = "disk_tilts_threads"
@@ -75,7 +76,14 @@ def kappa(frequency_hz):
     return 1j * 2 * np.pi * np.asarray(frequency_hz) * 8.8541878128e-12 * alpha / 4
 
 
-def boost_figures(a, bands):
+def boost_figures(
+    a,
+    bands,
+    *,
+    title_template="3D · {case_title_lower}{zoom_suffix}",
+    x_label="Frequency [GHz]",
+    y_label="Boost factor $\\beta^2$",
+):
     entries = []
     f, beta = a["frequency_hz"] / 1e9, a["beta2_conditional"]
     for stem, limits, suffix in [
@@ -97,9 +105,14 @@ def boost_figures(a, bands):
         ax.set(
             xlim=limits,
             ylim=(0, ymax),
-            xlabel="Frequency [GHz]",
-            ylabel=r"Boost factor $\beta^2$",
-            title="3D · " + TITLE.lower() + suffix,
+            xlabel=x_label,
+            ylabel=y_label,
+            title=render_text(
+                title_template,
+                case_title=TITLE,
+                case_title_lower=TITLE.lower(),
+                zoom_suffix=suffix,
+            ),
         )
         ax.grid(alpha=0.15)
         entries.append(
@@ -114,7 +127,18 @@ def boost_figures(a, bands):
     return entries
 
 
-def profile_figures(a):
+def profile_figures(
+    a,
+    *,
+    title_template="{case_title} · {frequency_GHz:.3f} GHz",
+    real_component_label="Real ΔS22",
+    imaginary_component_label="Imaginary ΔS22",
+    x_label="Signed transverse line position [mm]",
+    thread_label_template="T{thread_index}{held_out}\nz: {z_start_mm:.2f}→{z_end_mm:.2f} mm",
+    measured_label="Measured",
+    model_label="Fitted model",
+    held_out_label=" · held out",
+):
     profiles, limits = {}, np.zeros((4, 2))
     for f in FREQUENCIES:
         k = at_frequency(a, f)
@@ -144,14 +168,14 @@ def profile_figures(a):
                     ".",
                     color="#222222",
                     ms=3.3,
-                    label="Measured",
+                    label=measured_label,
                 )
                 ax.plot(
                     x[order],
                     fn(p[take])[order],
                     color=COLOR,
                     lw=1.45,
-                    label="Fitted model",
+                    label=model_label,
                 )
                 ax.axhline(0, color="#888888", lw=0.5)
                 ax.set_ylim(
@@ -161,17 +185,24 @@ def profile_figures(a):
                 ax.yaxis.set_major_locator(MaxNLocator(5))
                 ax.grid(alpha=0.14)
                 if t == 0:
-                    ax.set_title(("Real ΔS22", "Imaginary ΔS22")[c])
+                    ax.set_title((real_component_label, imaginary_component_label)[c])
                 if t == 3:
-                    ax.set_xlabel("Signed transverse line position [mm]")
+                    ax.set_xlabel(x_label)
             za, zb = a["thread_endpoint_z_mm"][t]
             axs[t, 0].set_ylabel(
-                f"T{t}"
-                + (" · held out" if t not in FIT_THREADS else "")
-                + f"\nz: {za:.2f}→{zb:.2f} mm"
+                render_text(
+                    thread_label_template,
+                    thread_index=t,
+                    held_out=held_out_label if t not in FIT_THREADS else "",
+                    z_start_mm=za,
+                    z_end_mm=zb,
+                    frequency_GHz=f,
+                )
             )
         axs[0, 0].legend(fontsize=8, loc="best")
-        fig.suptitle(f"{TITLE} · {f:.3f} GHz", fontsize=11)
+        fig.suptitle(
+            render_text(title_template, case_title=TITLE, frequency_GHz=f), fontsize=11
+        )
         entries.append(
             entry(
                 fig,
@@ -185,7 +216,16 @@ def profile_figures(a):
     return entries
 
 
-def effective_field_figures(a):
+def effective_field_figures(
+    a,
+    *,
+    title_template="{case_title} · finite-bead proxy · {frequency_GHz:.3f} GHz",
+    x_label="Signed transverse line position [mm]",
+    y_label_template="T{thread_index}{held_out} · proxy [V/m]",
+    measured_label="Measured finite-bead proxy",
+    model_label="Fitted finite-bead proxy",
+    held_out_label=" · held out",
+):
     entries, profiles = [], {}
     maxima = np.zeros(4)
     for f in FREQUENCIES:
@@ -211,26 +251,32 @@ def effective_field_figures(a):
                 ".",
                 ms=3.6,
                 color="#222222",
-                label="Measured finite-bead proxy",
+                label=measured_label,
             )
             ax.plot(
                 x[order],
                 p[use][order],
                 lw=1.5,
                 color=COLOR,
-                label="Fitted finite-bead proxy",
+                label=model_label,
             )
             ax.set(
-                ylabel=f"T{t}"
-                + (" · held out" if t not in FIT_THREADS else "")
-                + " · proxy [V/m]",
+                ylabel=render_text(
+                    y_label_template,
+                    thread_index=t,
+                    held_out=held_out_label if t not in FIT_THREADS else "",
+                    frequency_GHz=f,
+                ),
                 ylim=(0, 1.09 * maxima[t]),
             )
             ax.grid(alpha=0.15)
             ax.yaxis.set_major_locator(MaxNLocator(4))
         axs[0].legend(fontsize=8, loc="best")
-        axs[-1].set_xlabel("Signed transverse line position [mm]")
-        fig.suptitle(f"{TITLE} · finite-bead proxy · {f:.3f} GHz", fontsize=10.5)
+        axs[-1].set_xlabel(x_label)
+        fig.suptitle(
+            render_text(title_template, case_title=TITLE, frequency_GHz=f),
+            fontsize=10.5,
+        )
         entries.append(
             entry(
                 fig,
@@ -245,7 +291,41 @@ def effective_field_figures(a):
     return entries, profiles
 
 
-def geometry_figures(record):
+def geometry_figures(
+    record,
+    *,
+    endpoint_positions_title="Endpoint heights and central disk positions",
+    endpoint_shifts_title="Changes from corrected nominal; search ranges",
+    projection_title_template="{coordinate}–z projection",
+    disk_shifts_title="Shifts from corrected nominal",
+    disk_slopes_title="Disk surface slopes",
+    view_title="Fitted disk surfaces and all four straight paths",
+    z_label="Distance from mirror z [mm]",
+    transverse_label_template="{coordinate} [mm]",
+    endpoint_shift_y_label="Endpoint Δz [mm]",
+    disk_shift_y_label="Central near-face Δz [mm]",
+    disk_slope_y_label="Disk slope [mrad]",
+    x_label="x [mm]",
+    y_label="y [mm]",
+    view_z_label="z from mirror [mm]",
+    disk_label_template="D{disk_index}",
+    thread_label_template="T{thread_index}",
+    position_annotation_template="{z_mm:.3f}",
+    shift_annotation_template="{shift_mm:+.3f}",
+    nominal_disk_band_label="Corrected nominal disk",
+    fitted_disk_band_label="Fitted disk centre",
+    nominal_thread_marker_label="Corrected nominal thread",
+    nominal_disk_label="Nominal disk",
+    fitted_disk_label="Fitted disk",
+    nominal_thread_label="Nominal thread",
+    fitted_thread_label="Fitted thread",
+    endpoint_a_label="Endpoint A (min signed s)",
+    endpoint_b_label="Endpoint B (max signed s)",
+    endpoint_shift_label_template="Endpoint {endpoint}",
+    search_range_label="Search range",
+    slope_x_label="dz/dx",
+    slope_y_label="dz/dy",
+):
     endpoint = np.asarray(record["thread_endpoint_z_mm"])
     xy = np.asarray(record["thread_endpoint_xy_m"]) * 1000
     slopes = np.asarray(record["disk_slopes_mrad"])
@@ -264,16 +344,23 @@ def geometry_figures(record):
             z + 1,
             color=GREY,
             alpha=0.2,
-            label="Corrected nominal disk" if j == 0 else None,
+            label=nominal_disk_band_label if j == 0 else None,
         )
         ax.axvspan(
             faces[j],
             faces[j] + 1,
             color=COLOR,
             alpha=0.23,
-            label="Fitted disk centre" if j == 0 else None,
+            label=fitted_disk_band_label if j == 0 else None,
         )
-        ax.text(faces[j] + 0.5, 3.65, f"D{j + 1}", ha="center", color=COLOR, fontsize=8)
+        ax.text(
+            faces[j] + 0.5,
+            3.65,
+            render_text(disk_label_template, disk_index=j + 1),
+            ha="center",
+            color=COLOR,
+            fontsize=8,
+        )
     for t in range(4):
         y = 3 - t
         ax.plot(
@@ -283,7 +370,7 @@ def geometry_figures(record):
             mfc="white",
             mec=GREY,
             ms=5,
-            label="Corrected nominal thread" if t == 0 else None,
+            label=nominal_thread_marker_label if t == 0 else None,
         )
         ax.plot(endpoint[t], [y, y], color=THREAD_COLORS[t], lw=2)
         ax.plot(
@@ -292,7 +379,7 @@ def geometry_figures(record):
             "<",
             color=THREAD_COLORS[t],
             ms=6,
-            label="Endpoint A (min signed s)" if t == 0 else None,
+            label=endpoint_a_label if t == 0 else None,
         )
         ax.plot(
             endpoint[t, 1],
@@ -300,11 +387,16 @@ def geometry_figures(record):
             ">",
             color=THREAD_COLORS[t],
             ms=6,
-            label="Endpoint B (max signed s)" if t == 0 else None,
+            label=endpoint_b_label if t == 0 else None,
         )
         for col, offset in ((0, -0.15), (1, 0.15)):
             ax.annotate(
-                f"{endpoint[t,col]:.3f}",
+                render_text(
+                    position_annotation_template,
+                    z_mm=endpoint[t, col],
+                    thread_index=t,
+                    endpoint="AB"[col],
+                ),
                 (endpoint[t, col], y),
                 xytext=(0, 11 if col else -15),
                 textcoords="offset points",
@@ -317,9 +409,11 @@ def geometry_figures(record):
         xlim=(-0.5, 37),
         ylim=(-0.55, 4.1),
         yticks=np.arange(4),
-        yticklabels=["T3", "T2", "T1", "T0"],
-        xlabel="Distance from mirror z [mm]",
-        title="Endpoint heights and central disk positions",
+        yticklabels=[
+            render_text(thread_label_template, thread_index=t) for t in (3, 2, 1, 0)
+        ],
+        xlabel=z_label,
+        title=endpoint_positions_title,
     )
     ax.legend(
         ncol=2,
@@ -339,11 +433,11 @@ def geometry_figures(record):
             marker,
             color=COLOR,
             ms=7,
-            label="Endpoint " + label,
+            label=render_text(endpoint_shift_label_template, endpoint=label),
         )
         for xx, yy in zip(x + offset, shifts[:, col]):
             ax.annotate(
-                f"{yy:+.3f}",
+                render_text(shift_annotation_template, shift_mm=yy, endpoint="AB"[col]),
                 (xx, yy),
                 xytext=(0, 7 if col else -14),
                 textcoords="offset points",
@@ -366,18 +460,20 @@ def geometry_figures(record):
             color=GREY,
             lw=0.7,
             ls=":",
-            label="Search range" if t == 0 else None,
+            label=search_range_label if t == 0 else None,
         )
         ax.hlines([lower[t], upper[t]], t - 0.28, t + 0.28, color=GREY, lw=0.7, ls=":")
     ax.set(
         xticks=x,
-        xticklabels=[f"T{t}" for t in range(4)],
+        xticklabels=[
+            render_text(thread_label_template, thread_index=t) for t in range(4)
+        ],
         ylim=(
             min(lower.min(), shifts.min()) - 0.7,
             max(upper.max(), shifts.max()) + 0.7,
         ),
-        ylabel="Endpoint Δz [mm]",
-        title="Changes from corrected nominal; search ranges",
+        ylabel=endpoint_shift_y_label,
+        title=endpoint_shifts_title,
     )
     ax.grid(axis="y", alpha=0.15)
     ax.legend(
@@ -447,7 +543,7 @@ def geometry_figures(record):
                 ax.text(
                     NOMINAL_DISKS[j] + 0.5,
                     RADIUS_MM + 9,
-                    f"D{j+1}",
+                    render_text(disk_label_template, disk_index=j + 1),
                     ha="center",
                     fontsize=8,
                     color=GREY,
@@ -469,7 +565,7 @@ def geometry_figures(record):
                 xy[t, :, col],
                 color=projection_colors[t],
                 lw=1.4,
-                label=f"T{t}",
+                label=render_text(thread_label_template, thread_index=t),
             )
             ax.plot(
                 endpoint[t, 0], xy[t, 0, col], "<", color=projection_colors[t], ms=4
@@ -481,20 +577,26 @@ def geometry_figures(record):
         ax.set(
             xlim=(-0.5, 37),
             ylim=(-215, 215),
-            xlabel="Distance from mirror z [mm]",
-            ylabel=f"{name} [mm]",
-            title=f"{name}–z projection",
+            xlabel=z_label,
+            ylabel=render_text(transverse_label_template, coordinate=name),
+            title=render_text(projection_title_template, coordinate=name),
         )
         ax.grid(alpha=0.13)
     if split_geometry:
         handles = [
-            Patch(fc="#E4E8EB", ec=GREY, ls="--", label="Nominal disk"),
-            Patch(fc=COLOR, ec=COLOR, alpha=0.35, label="Fitted disk"),
-            Line2D([], [], color=GREY, ls="--", lw=1.3, label="Nominal thread"),
-            Line2D([], [], color=GREY, lw=1.4, label="Fitted thread"),
+            Patch(fc="#E4E8EB", ec=GREY, ls="--", label=nominal_disk_label),
+            Patch(fc=COLOR, ec=COLOR, alpha=0.35, label=fitted_disk_label),
+            Line2D([], [], color=GREY, ls="--", lw=1.3, label=nominal_thread_label),
+            Line2D([], [], color=GREY, lw=1.4, label=fitted_thread_label),
         ]
         handles += [
-            Line2D([], [], color=projection_colors[t], lw=2, label=f"T{t}")
+            Line2D(
+                [],
+                [],
+                color=projection_colors[t],
+                lw=2,
+                label=render_text(thread_label_template, thread_index=t),
+            )
             for t in range(4)
         ]
         # Column-wise legend filling pairs each geometric style with a thread colour.
@@ -525,22 +627,22 @@ def geometry_figures(record):
     adjustment_axes[0].bar(x, disk_shifts_mm(faces), color=COLOR, width=0.55)
     adjustment_axes[0].set(
         xticks=x,
-        xticklabels=["D1", "D2", "D3"],
-        ylabel="Central near-face Δz [mm]",
-        title="Shifts from corrected nominal",
+        xticklabels=[render_text(disk_label_template, disk_index=j) for j in (1, 2, 3)],
+        ylabel=disk_shift_y_label,
+        title=disk_shifts_title,
     )
     for col, offset, label, color in (
-        (0, -0.17, "dz/dx", COLOR),
-        (1, 0.17, "dz/dy", "#DDAA33"),
+        (0, -0.17, slope_x_label, COLOR),
+        (1, 0.17, slope_y_label, "#DDAA33"),
     ):
         adjustment_axes[1].bar(
             x + offset, slopes[:, col], width=0.32, color=color, label=label
         )
     adjustment_axes[1].set(
         xticks=x,
-        xticklabels=["D1", "D2", "D3"],
-        ylabel="Disk slope [mrad]" if split_geometry else "Slope × 1000 [mrad]",
-        title="Disk surface slopes",
+        xticklabels=[render_text(disk_label_template, disk_index=j) for j in (1, 2, 3)],
+        ylabel=disk_slope_y_label,
+        title=disk_slopes_title,
     )
     adjustment_axes[1].legend(fontsize=8)
     for ax in adjustment_axes:
@@ -582,17 +684,17 @@ def geometry_figures(record):
             endpoint[t],
             color=THREAD_COLORS[t],
             lw=2,
-            label=f"T{t}",
+            label=render_text(thread_label_template, thread_index=t),
         )
         ax.scatter(xy[t, :, 0], xy[t, :, 1], endpoint[t], color=THREAD_COLORS[t], s=15)
     ax.set(
         xlim=(-210, 210),
         ylim=(-210, 210),
         zlim=(0, 37),
-        xlabel="x [mm]",
-        ylabel="y [mm]",
-        zlabel="z from mirror [mm]",
-        title="Fitted disk surfaces and all four straight paths",
+        xlabel=x_label,
+        ylabel=y_label,
+        zlabel=view_z_label,
+        title=view_title,
     )
     ax.set_box_aspect((1, 1, 1.15))
     ax.view_init(elev=23, azim=-57)
@@ -621,7 +723,18 @@ def geometry_figures(record):
     )
 
 
-def field_map_figures(maps, a, record):
+def field_map_figures(
+    maps,
+    a,
+    record,
+    *,
+    title_template="{case_title} · horizontal sections · {frequency_GHz:.3f} GHz",
+    panel_title_template="T{thread_index}{held_out}\nz = {z_mm:.4f} mm",
+    x_label="x [mm]",
+    y_label="y [mm]",
+    colorbar_label="$|E|$ [V/m]",
+    held_out_label=" · held out",
+):
     x, y = maps["x_m"] * 1000, maps["y_m"] * 1000
     z = maps.get("thread_midpoint_z_mm", maps.get("thread_z_mm"))
     np.testing.assert_allclose(
@@ -688,21 +801,24 @@ def field_map_figures(maps, a, record):
                 xlim=(-205, 205),
                 ylim=(-205, 205),
                 aspect="equal",
-                title=f"T{t}"
-                + (" · held out" if t not in FIT_THREADS else "")
-                + f"\nz = {z[t]:.4f} mm",
+                title=render_text(
+                    panel_title_template,
+                    thread_index=t,
+                    held_out=held_out_label if t not in FIT_THREADS else "",
+                    z_mm=z[t],
+                    frequency_GHz=f,
+                ),
             )
             if t >= 2:
-                ax.set_xlabel("x [mm]")
+                ax.set_xlabel(x_label)
             if t % 2 == 0:
-                ax.set_ylabel("y [mm]")
-        colour_label = (
-            r"$|E|$ [V/m]"
-            if unperturbed
-            else r"Fitted finite-bead proxy $\sqrt{|cQ|}$ [V/m]"
-        )
+                ax.set_ylabel(y_label)
+        colour_label = colorbar_label
         fig.colorbar(display, ax=axs, shrink=0.84, label=colour_label)
-        fig.suptitle(f"{TITLE} · horizontal sections · {f:.3f} GHz", fontsize=10.5)
+        fig.suptitle(
+            render_text(title_template, case_title=TITLE, frequency_GHz=f),
+            fontsize=10.5,
+        )
         if unperturbed:
             caption = (
                 "Colours show the fitted model's electric-field magnitude without the bead: the magnitude of the summed incoming and outgoing fields, including the fitted amplitude scale. "
@@ -743,7 +859,18 @@ def field_map_figures(maps, a, record):
     return entries
 
 
-def reference_figure(a, bands, reference, notice):
+def reference_figure(
+    a,
+    bands,
+    reference,
+    notice,
+    *,
+    title="Spider and full bead pull · saved normalizations",
+    x_label="Frequency [GHz]",
+    y_label="Boost factor $\\beta^2$",
+    full_curve_label="Full bead pull",
+    spider_curve_label="Spider bead pull",
+):
     fig, ax = plt.subplots(figsize=(6.5, 4.0), layout="constrained")
     f = a["frequency_hz"] / 1e9
     fr = reference["frequency_hz"] / 1e9
@@ -759,8 +886,8 @@ def reference_figure(a, bands, reference, notice):
         alpha=0.24,
         lw=0,
     )
-    ax.plot(fr, yr, color="#42484D", ls="--", lw=1.6, label="Full bead pull")
-    ax.plot(f, a["beta2_conditional"], color=COLOR, lw=1.8, label="Spider bead pull")
+    ax.plot(fr, yr, color="#42484D", ls="--", lw=1.6, label=full_curve_label)
+    ax.plot(f, a["beta2_conditional"], color=COLOR, lw=1.8, label=spider_curve_label)
     ax.set(
         xlim=(20, 22),
         ylim=(
@@ -772,9 +899,9 @@ def reference_figure(a, bands, reference, notice):
                 np.max(a["beta2_conditional"]),
             ),
         ),
-        xlabel="Frequency [GHz]",
-        ylabel=r"Boost factor $\beta^2$",
-        title="Spider and full bead pull · saved normalizations",
+        xlabel=x_label,
+        ylabel=y_label,
+        title=title,
     )
     ax.legend(fontsize=8.5, loc="best")
     ax.grid(alpha=0.15)
@@ -788,7 +915,20 @@ def reference_figure(a, bands, reference, notice):
     )
 
 
-def residual_figure(a, control=None):
+def residual_figure(
+    a,
+    control=None,
+    *,
+    title_template="{case_title} · fit quality",
+    x_label="Frequency [GHz]",
+    combined_y_label="Combined residual [%]",
+    individual_y_label="Individual residual [%]",
+    objective_label_template="Fitted objective · {scope}",
+    fit_bins_label_template="{fit_bin_count} geometry-fit bins",
+    control_label="New fixed-thread tilts · same all-four objective",
+    thread_label_template="T{thread_index}{held_out}",
+    held_out_label=" · held out",
+):
     fig, axs = plt.subplots(2, 1, figsize=(6.5, 5.8), layout="constrained", sharex=True)
     f = a["frequency_hz"] / 1e9
     use = a["eligible"].astype(bool)
@@ -796,7 +936,7 @@ def residual_figure(a, control=None):
         f,
         100 * a["relative_residual"],
         color=COLOR,
-        label="Fitted objective · " + SCOPE,
+        label=render_text(objective_label_template, scope=SCOPE),
     )
     axs[0].plot(
         f[use],
@@ -804,7 +944,7 @@ def residual_figure(a, control=None):
         ".",
         color=COLOR,
         ms=4,
-        label="33 geometry-fit bins",
+        label=render_text(fit_bins_label_template, fit_bin_count=int(use.sum())),
     )
     if control is not None:
         axs[0].plot(
@@ -812,7 +952,7 @@ def residual_figure(a, control=None):
             100 * control["all_thread_residual"],
             color=GREY,
             ls="--",
-            label="New fixed-thread tilts · same all-four objective",
+            label=control_label,
         )
     for t in range(4):
         axs[1].plot(
@@ -820,16 +960,22 @@ def residual_figure(a, control=None):
             100 * a["relative_residual_by_thread"][:, t],
             lw=1.2,
             color=THREAD_COLORS[t],
-            label=f"T{t}" + (" · held out" if t not in FIT_THREADS else ""),
+            label=render_text(
+                thread_label_template,
+                thread_index=t,
+                held_out=held_out_label if t not in FIT_THREADS else "",
+            ),
         )
     axs[0].set(
-        ylim=(0, 105), title=TITLE + " · fit quality", ylabel="Combined residual [%]"
+        ylim=(0, 105),
+        title=render_text(title_template, case_title=TITLE),
+        ylabel=combined_y_label,
     )
     axs[1].set(
         yscale="log",
         ylim=(1, 1e4),
-        ylabel="Individual residual [%]",
-        xlabel="Frequency [GHz]",
+        ylabel=individual_y_label,
+        xlabel=x_label,
     )
     for ax in axs:
         ax.set_xlim(20, 22)
@@ -849,8 +995,19 @@ def residual_figure(a, control=None):
     )
 
 
-def reference_field_figure(maps, reference):
-    f = 20.825
+def reference_field_figure(
+    maps,
+    reference,
+    *,
+    frequency_GHz=20.825,
+    title_template="Model field integrals · {frequency_GHz:.3f} GHz",
+    x_label="Distance from mirror z [mm]",
+    y_label="Unperturbed $|E_T|$ [V m]",
+    full_curve_label="Full bead pull · reconstructed 1D model",
+    spider_curve_label="Spider · 3D horizontal model sections",
+    thread_label_template="T{thread_index}",
+):
+    f = frequency_GHz
     k = at_frequency(maps, f)
     kr = at_frequency(reference, f)
     fig, ax = plt.subplots(figsize=(6.5, 3.8), layout="constrained")
@@ -860,7 +1017,7 @@ def reference_field_figure(maps, reference):
         color="#42484D",
         ls="--",
         lw=1.5,
-        label="Full bead pull · reconstructed 1D model",
+        label=full_curve_label,
     )
     valid = maps["coherent_integral_full_aperture_in_air"][k].astype(bool)
     z = maps["thread_midpoint_z_mm"][1:]
@@ -871,12 +1028,12 @@ def reference_field_figure(maps, reference):
         "o",
         color=COLOR,
         ms=6,
-        label="Spider · 3D horizontal model sections",
+        label=spider_curve_label,
     )
     for t in range(3):
         if valid[t]:
             ax.annotate(
-                f"T{t+1}",
+                render_text(thread_label_template, thread_index=t + 1),
                 (z[t], values[t]),
                 xytext=(4, 5),
                 textcoords="offset points",
@@ -885,15 +1042,15 @@ def reference_field_figure(maps, reference):
     ax.set(
         xlim=(0, 50),
         ylim=(0, None),
-        xlabel="Distance from mirror z [mm]",
-        ylabel=r"Unperturbed $|E_T|$ [V m]",
-        title="Model field integrals · 20.825 GHz",
+        xlabel=x_label,
+        ylabel=y_label,
+        title=render_text(title_template, frequency_GHz=f),
     )
     ax.grid(alpha=0.15)
     ax.legend(fontsize=8)
     return entry(
         fig,
-        "fields_full_reference_20p825",
+        "fields_full_reference_" + f"{f:.3f}".replace(".", "p"),
         "Full-reference and spider model fields",
         "Both series are model predictions of the unperturbed coherent transverse field integral, not raw finite-bead measurements. The full curve uses its saved 1D mean parameters; spider points integrate the fitted 3D field at horizontal midpoint sections with the saved common amplitude. Invalid full-aperture-in-air sections are omitted. No phase comparison is made because the global phase reference is unregistered. Aperture and absolute-calibration differences remain; a horizontal section is not a sloped sampling path.",
     )

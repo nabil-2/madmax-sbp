@@ -152,7 +152,7 @@ from .full_bead_model import disk_edges, evaluate_full_model
 _FULL_COLOR = "#222222"
 
 
-def comparison_summary(data, full, frequency_GHz=21.0):
+def comparison_summary(data, full, frequency_GHz=21.0, *, compact=False):
     """Report provenance, matching bins and as-saved metrics without rescaling."""
     import pandas as pd
     from IPython.display import Markdown, display
@@ -178,6 +178,11 @@ def comparison_summary(data, full, frequency_GHz=21.0):
     rows.append({"Result": "Full bead pull · saved MC result", "Saved β² at selected f": full.beta2[fi],
                  "Peak f in overlap [GHz]": full.frequencies_Hz[peak]/1e9, "Saved peak β²": full.beta2[peak],
                  "Magnitude residual [%]": residual*100, "Measured z planes": full.ET.shape[0]})
+    if compact:
+        display(Markdown(f"**Reference:** {full.frequencies_Hz.min()/1e9:g}–{full.frequencies_Hz.max()/1e9:g} GHz · "
+                         f"comparison at {frequency/1e9:.4f} GHz. Values retain saved normalizations."))
+        display(pd.DataFrame(rows).set_index("Result").round(4))
+        return
     display(Markdown(f"**Full-bead source:** `{full.source.name}` · {len(full.frequencies_Hz):,} frequencies "
                      f"from {full.frequencies_Hz.min()/1e9:g} to {full.frequencies_Hz.max()/1e9:g} GHz · "
                      f"{len(full.z_absolute_m)} longitudinal samples · {full.n_mc} saved Monte Carlo draws.  \n"
@@ -527,17 +532,24 @@ def _boost_normalization_audit(handle, values, frequencies_Hz, *, reference_radi
     }
 
 
-def normalization_summary(full):
+def normalization_summary(full, *, compact=False):
     """Expose the saved normalization difference without inventing its meaning."""
     from IPython.display import Markdown, display
     with h5py.File(full.source, "r") as handle:
         audit = _boost_normalization_audit(handle, handle["boostfactor"][()], full.frequencies_Hz)
     if not audit["available"]:
+        if compact:
+            display(Markdown("**Normalization:** unavailable; values are shown as saved."))
+            return
         display(Markdown("**Normalization:** the archive does not expose enough bookkeeping to compare its absolute normalization. "
                          "The comparison retains the saved values and shows normalized shapes separately."))
         return
     ratio = audit["saved_to_reference_factor"]
     inverse = audit["inverse_input"]
+    if compact:
+        display(Markdown(f"**Normalization:** full-reference β² carries a factor {ratio.min():.6g}–{ratio.max():.6g} "
+                         "relative to the spider convention. Physical correction factors are unknown; no rescaling is applied."))
+        return
     display(Markdown(
         "**Normalization audit:** relative to the spider formula evaluated with the full scan's saved "
         "Monte Carlo mean overlap, a **1 W** reference and a **150 mm** disk radius, the full archive's "

@@ -200,6 +200,37 @@ longitudinal fits, geometry shifts, boost/residual spectra and the full-grid
 comparison. Figure titles and labels remain editable in each plot cell.
 Rendered figures are saved in the notebook for viewing on GitHub.
 
+Both analysis notebooks save every displayed figure as **PNG and PDF** under
+the root `plots/` folder. They create the directories automatically. The figure
+cells expose their titles, axis labels, legend entries, colorbar labels and
+annotations as editable keyword arguments, matching the original notebook style.
+Edit a string and rerun its cell to update the inline figure and both exports.
+Templates such as `{frequency_GHz:.3f}` keep numerical values current; raw
+strings such as `r"$|E|$ [V/m]"` support mathematical labels. `PLOT_ROOT` in each
+notebook selects the export root.
+
+```text
+plots/
+  1d/
+    measurement/{setup,raw,transverse,incident_beam}/
+    both/{fits,fields}/                   # selected GEOMETRY
+    geometry_comparison/{fits,geometry,boost,history,residuals}/
+    full_bead_comparison/both/
+  3d/full_tilt/
+    measurement/{raw,incident_beam}/
+    boost/
+    profiles/
+    fields/{chords,transverse}/
+    geometry/
+    residuals/
+    full_bead_comparison/
+```
+
+`plots/` is ignored by Git. All exports can be recreated by running the notebooks
+with the local measurement/result files described below. The notebooks themselves
+are committed with their rendered figures included; no external plotting script
+is required.
+
 - `src/sbp_analysis.py`: raw line data to radial fields and transverse integrals.
 - `src/fit_1D.py`: finite-bead longitudinal model and four geometry fits.
 - `src/pipeline_plots.py`: the original measurement and 1D figures.

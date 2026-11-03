@@ -518,7 +518,7 @@ def present(figure, stem, output_dir=None):
     plt.close(figure)
 
 
-def summary(data):
+def summary(data, *, compact=False):
     """A compact notebook table describing the selected run and saved results."""
     import pandas as pd
     from IPython.display import Markdown, display
@@ -541,6 +541,8 @@ def summary(data):
                      f"**Saved 1D cases:** {', '.join(data.fits_1d) or 'none'}.  \n"
                      f"**Outputs:** `{output_label}`"))
     display(pd.DataFrame(rows).set_index("Sub-thread").round(4))
+    if compact:
+        return
     if data.geometry_correction is not None:
         display(Markdown(f"**Geometry correction:** {data.geometry_correction['description']}"))
     if data.fit_3d is not None:
