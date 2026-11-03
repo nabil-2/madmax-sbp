@@ -24,14 +24,15 @@ Full bead pull vs 1D
 .. Exported by sbp_1d_analysis.ipynb from
    plots/1d/full_bead_comparison/both/22_boost_comparison.png
 
-.. figure:: /_static/figures/full_reference/1d_boost_absolute.png
-   :alt: Saved absolute full bead-pull boost compared with four spider 1D geometry fits.
+.. figure:: /_static/figures/full_reference/1d_boost_both.png
+   :alt: Full bead-pull boost and the spider 1D fit with both disk gaps and thread z positions adjusted, from 20 to 22 GHz.
    :width: 100%
-   :target: ../_static/figures/full_reference/1d_boost_absolute.png
+   :target: ../_static/figures/full_reference/1d_boost_both.png
 
-   **Boost factor.** Full bead pull against the four spider 1D geometry fits:
-   fixed, gaps only, thread z only, and both. All curves retain their saved
-   absolute boost factors.
+   **Boost factor.** Full bead pull against the spider 1D fit with both disk
+   gaps and thread z positions adjusted. Grey shading shows the saved full-scan
+   one-standard-deviation uncertainty; the 1D fit has no statistical uncertainty
+   band. The axes span 20–22 GHz, with the full reference covering 20.5–21.5 GHz.
 
 Full bead pull vs 3D
 --------------------

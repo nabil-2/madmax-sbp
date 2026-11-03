@@ -206,32 +206,29 @@ def reference_peak_frequency(data, full):
 
 def plot_boost_comparison(
     data, full, *,
-    title="Boost comparison · absolute values retain saved normalization",
+    title="Spider and full bead pull · saved normalizations",
     x_label="Frequency [GHz]",
-    y_label="Saved power boost β²",
-    full_curve_label="Full bead pull · as saved",
-    spider_curve_label_template="Spider 1D · {mode}",
-    trial_curve_label="Spider 3D trial · receive-coupled",
+    y_label="Boost factor $\\beta^2$",
+    full_curve_label="Full bead pull",
+    spider_curve_label="Spider bead pull",
 ):
-    """Compare boost factors in their saved absolute normalization."""
-    figure, axis = plt.subplots(figsize=(12.5, 4.6), constrained_layout=True)
-    low, high = full.frequencies_Hz[[0, -1]]/1e9
-    axis.plot(full.frequencies_Hz/1e9, full.beta2, color=_FULL_COLOR, lw=2.4, label=render_text(full_curve_label))
-    for mode, color in _plots._FIT_GEOMETRY_COLORS.items():
-        if mode not in data.fits_1d:
-            continue
-        fit = data.fits_1d[mode]
-        select = (fit["frequencies_Hz"] >= low*1e9) & (fit["frequencies_Hz"] <= high*1e9)
-        frequency, values = fit["frequencies_Hz"][select]/1e9, fit["beta2"][select]
-        axis.plot(frequency, values, color=color, label=render_text(spider_curve_label_template, mode=mode))
-    if data.fit_3d is not None:
-        trial = data.fit_3d
-        keep = (trial["frequencies_Hz"] >= low*1e9) & (trial["frequencies_Hz"] <= high*1e9)
-        axis.plot(trial["frequencies_Hz"][keep]/1e9, trial["beta2"][keep], "D", color="#c54036", markersize=6,
-                  label=render_text(trial_curve_label))
+    """Full scan versus the 1D 'both' fit, styled like the 3D comparison.
+
+    Only the full scan has a saved uncertainty band; no 1D band is inferred.
+    """
+    fit = _plots._fitplot_result(data, "both")
+    select = (fit["frequencies_Hz"] >= 20e9) & (fit["frequencies_Hz"] <= 22e9)
+    frequency, values = fit["frequencies_Hz"][select]/1e9, fit["beta2"][select]
+    figure, axis = plt.subplots(figsize=(6.5, 4.0), layout="constrained")
+    axis.fill_between(full.frequencies_Hz/1e9, np.maximum(0, full.beta2-full.beta2_error),
+                      full.beta2+full.beta2_error, color="#42484D", alpha=0.16, lw=0)
+    axis.plot(full.frequencies_Hz/1e9, full.beta2, color="#42484D", ls="--", lw=1.6,
+              label=render_text(full_curve_label))
+    axis.plot(frequency, values, color="#AA3377", lw=1.8, label=render_text(spider_curve_label))
     axis.set(xlabel=render_text(x_label), ylabel=render_text(y_label), title=render_text(title),
-             ylim=(0, None), xlim=(low, high))
-    axis.legend(fontsize=9, ncol=2)
+             ylim=(0, 1.08*max(np.max(full.beta2+full.beta2_error), np.max(values))), xlim=(20, 22))
+    axis.legend(fontsize=8.5, loc="best")
+    axis.grid(alpha=0.15)
     return figure
 
 
