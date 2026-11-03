@@ -5,6 +5,11 @@ Code and mathematical steps for **spider bead pull**: verify reduced sampling,
 take measurements, then reconstruct fields and the power boost factor
 :math:`\beta^2`. Each pipeline links to its implementation and notebook.
 
+**Notation:** :math:`\Gamma` is the measured complex reflection coefficient;
+:math:`\Delta\Gamma` is the signal after baseline subtraction;
+:math:`\nu` is frequency and :math:`\omega=2\pi\nu`.
+Literal filenames and dataset keys retain their stored spelling.
+
 .. raw:: html
 
    <div class="workflow-grid">

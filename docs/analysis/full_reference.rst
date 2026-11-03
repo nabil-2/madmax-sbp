@@ -22,7 +22,7 @@ setup uses its own mirror origin:
 
 .. math::
 
-   z_{\mathrm{full,out}}=z_{m,\mathrm{fit}}(f)-z_{\mathrm{saved}}.
+   z_{\mathrm{full,out}}=z_{m,\mathrm{fit}}(\nu)-z_{\mathrm{saved}}.
 
 This aligns mirror coordinates, not geometries or sampled z positions.
 
@@ -32,8 +32,7 @@ This aligns mirror coordinates, not geometries or sampled z positions.
 The full-reference boost and its uncertainty are read **as saved**. Reference
 field curves are evaluated at the saved mean parameters, including each disk's
 own thickness, permittivity and loss. They are not Monte Carlo mean fields.
-For exact reproduction, the archive evaluator retains its original lossy-layer
-conjugation convention; it is distinct from the new 1D evaluator.
+Reference curves retain the archive's own model-evaluation convention.
 
 Absolute panels retain each result's normalization. Shape panels divide each
 boost curve by its own maximum, and each field-frequency column by its own
@@ -41,7 +40,7 @@ maximum where indicated. Magnitude residuals use
 
 .. math::
 
-   r(f)=\frac{\|m(z,f)-|E_T(z,f)|\|_2}{\||E_T(z,f)|\|_2}
+   r(\nu)=\frac{\|m(z,\nu)-|E_T(z,\nu)|\|_2}{\||E_T(z,\nu)|\|_2}
 
 on each measurement's own sampled z. Spider 3D field-integral points are model
 integrals over valid horizontal midpoint sections, not new measurements along z.

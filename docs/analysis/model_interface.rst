@@ -29,7 +29,7 @@ Inputs
    * - Numerical settings
      - Propagation-bank grid, modal truncation and interpolation settings
 
-The measured spider S22 samples are **not** supplied as an input illumination.
+The measured spider :math:`\Gamma` samples are **not** supplied as an input illumination.
 They remain the observations in the external fit. Beam construction, thread
 geometry and the fit equations are given in :doc:`three_dimensional`.
 

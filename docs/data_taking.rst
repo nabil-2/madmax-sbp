@@ -64,7 +64,8 @@ Code: :codefile:`src/acquisition.py`.
    * - File
      - Contents
    * - ``s11_traces.h5``
-     - ``frequencies_Hz`` and complex ``s_parameter[trace, frequency]``
+     - Frequency :math:`\nu` in ``frequencies_Hz`` and complex :math:`\Gamma`
+       in ``s_parameter[trace, frequency]``
    * - ``scan_log.csv`` / ``scan_log.jsonl``
      - Reached positions, XYZ, trace index and time
    * - ``scan_manifest.json``
@@ -72,5 +73,6 @@ Code: :codefile:`src/acquisition.py`.
    * - ``vna_log.txt``
      - Instrument communication, for a real VNA
 
-The HDF5 filename is historical: its attributes identify the actual S-parameter,
-normally **S22**, not the filename. Existing scan files are refused by default.
+The HDF5 filename is historical: its attributes identify the reflection port,
+normally port 2. The measured coefficient is denoted :math:`\Gamma` here.
+Existing scan files are refused by default.

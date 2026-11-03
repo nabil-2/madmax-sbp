@@ -4,8 +4,9 @@
 
 [Documentation: verification, data taking and analysis](https://nabil-2.github.io/madmax-sbp/)
 describes the code and mathematical steps. Sphinx sources live in `docs/` and
-GitHub Actions publishes them to GitHub Pages. BoostFractor and the bead-response
-calculation are treated as black boxes; the bead-response page cites Egge et al.
+GitHub Actions publishes them to GitHub Pages. The 1D/3D booster models and the
+bead-response calculation are treated as black boxes; the bead-response page
+cites Egge et al.
 
 The first workflow, **SBP verification**, checks how well a few lines from a full
 bead-pull grid reproduce its transverse field and coherent transverse integrals.

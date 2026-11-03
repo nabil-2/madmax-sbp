@@ -18,11 +18,11 @@ Inputs and outputs
      - Frequency, bead radius/permittivity and incident-power convention;
        directional model fields when evaluating the finite-size response
    * - Field conversion
-     - A complex factor :math:`C_b(f)` converting a continuous square root of
+     - A complex factor :math:`C_b(\nu)` converting a continuous square root of
        the measured reflection change into the finite-bead field estimate
    * - Model response
-     - A complex quadratic response :math:`Q=\mathcal R_b(e_+,e_-;f)` and
-       reflection conversion factor :math:`\kappa_b(f)` for the model template
+     - A complex quadratic response :math:`Q=\mathcal R_b(e_+,e_-;\nu)` and
+       reflection conversion factor :math:`\kappa_b(\nu)` for the model template
 
 The configured bead has radius 1.465 mm and relative permittivity 9.23; the
 incident-power convention is 1 W. These are this repository's inputs.
@@ -31,7 +31,7 @@ Where it enters the pipelines
 -----------------------------
 
 * **Verification and raw 1D reconstruction:** apply
-  :math:`E_{\mathrm{conv}}=C_b(f)\sqrt{\Delta\Gamma}` using continuous branches.
+  :math:`E_{\mathrm{conv}}=C_b(\nu)\sqrt{\Delta\Gamma}` using continuous branches.
 * **1D fit:** compare measured magnitudes with :math:`\sqrt{|Q|}`.
 * **3D fit:** use the complex response in the reflection template, with the
   phasor/conjugation convention specified in :doc:`three_dimensional`.

@@ -11,7 +11,8 @@ Numerical steps: :codefile:`src/verification_core.py`.
 1. Read the grids and choose samples
 ------------------------------------
 
-Each HDF5 file contains complex ``s11_map[x,y,z,frequency]`` and the
+Each HDF5 file records complex :math:`\Gamma` in
+``s11_map[x,y,z,frequency]`` and includes the
 ``vna_config`` / ``measurement_config`` JSON attributes. Grid coordinates are
 converted from millimetres to metres. The default example selects nine bins
 near 19.5 GHz from the original 18–24 GHz grids.
@@ -28,8 +29,8 @@ On the complete acquired frequency axis, form
 
 .. math::
 
-   s(t)=\operatorname{fftshift}\{\operatorname{IFFT}_f S(f)\},\qquad
-   S_g(f)=\operatorname{FFT}_t\{\operatorname{ifftshift}[W(t)s(t)]\}.
+   \gamma(t)=\operatorname{fftshift}\{\operatorname{IFFT}_{\nu}\Gamma(\nu)\},\qquad
+   \Gamma_g(\nu)=\operatorname{FFT}_t\{\operatorname{ifftshift}[W(t)\gamma(t)]\}.
 
 For each z plane, find the largest central-grid time-domain magnitude, add
 55 ns, and fit those times linearly in z. Correct the gate centre off axis:
@@ -69,8 +70,8 @@ a complex affine background to the first and last two samples:
 .. math::
 
    (b_0,b_1)=\arg\min\sum_{i\in\mathrm{edges}}
-   |S_{g,i}-b_0-b_1s_i|^2,\qquad
-   \Delta\Gamma_i=S_{g,i}-b_0-b_1s_i.
+   |\Gamma_{g,i}-b_0-b_1s_i|^2,\qquad
+   \Delta\Gamma_i=\Gamma_{g,i}-b_0-b_1s_i.
 
 For the full grid, the same operation uses the first/last two x samples of
 each y row, with x replacing the line coordinate s.
@@ -86,9 +87,9 @@ along x then y for the full grid, or along the retained line coordinate:
    q=\sqrt{|\Delta\Gamma|}\,
    \exp\{i\operatorname{unwrap}_{\pi}[\arg\sqrt{\Delta\Gamma}]\},
    \qquad
-   E_{\mathrm{conv}}=C_b(f)\,q.
+   E_{\mathrm{conv}}=C_b(\nu)\,q.
 
-The conversion factor :math:`C_b(f)` comes from the
+The conversion factor :math:`C_b(\nu)` comes from the
 :doc:`bead-response interface <analysis/bead_response>`, using the configured
 bead and 1-W convention. This produces the finite-bead field estimate; the
 response calculation itself is treated as a black box.

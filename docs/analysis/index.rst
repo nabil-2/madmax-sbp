@@ -2,7 +2,9 @@ Analysis
 ========
 
 The two fits use different observables. Neither fits a freely chosen boost
-spectrum: :math:`\beta^2` is calculated from the fitted field/model response.
+spectrum: :math:`\beta^2` is calculated from the fitted field/model response. Both
+booster models and the bead response are treated as black boxes; the following
+pages document their inputs, outputs and fitting steps.
 
 .. list-table:: Choose a pipeline
    :header-rows: 1
@@ -12,8 +14,8 @@ spectrum: :math:`\beta^2` is calculated from the fitted field/model response.
      - 1D
      - Full-tilt 3D
    * - Measurement entering the fit
-     - Magnitudes of reconstructed transverse integrals :math:`|E_T(z,f)|`
-     - Corrected complex S22 at the actual chord points
+     - Magnitudes of reconstructed transverse integrals :math:`|E_T(z,\nu)|`
+     - Drift-corrected complex :math:`\Gamma` at the actual chord points
    * - Transverse assumption
      - Radial continuation of each measured diameter
      - Scalar diffraction model with an independent measured input beam
