@@ -2,6 +2,11 @@
 
 **SBP means spider bead pull.**
 
+[Documentation: verification, data taking and analysis](https://nabil-2.github.io/madmax-sbp/)
+describes the code and mathematical steps. Sphinx sources live in `docs/` and
+GitHub Actions publishes them to GitHub Pages. BoostFractor's field calculation
+is treated as a black box.
+
 The first workflow, **SBP verification**, checks how well a few lines from a full
 bead-pull grid reproduce its transverse field and coherent transverse integrals.
 Open [sbp_verification.ipynb](sbp_verification.ipynb) and run it from top to bottom.
@@ -46,6 +51,8 @@ Run Jupyter from this repository's root.
 - `src/verification_core.py`: the original time gating, background subtraction,
   field extraction, line selection, complex Gaussian fit and integration.
 - `src/verification_plots.py`: field maps and transverse-integral comparisons.
+- `src/verification_diagnostics.py`: the original sampling, background,
+  alignment, complex-field, integral-frequency and illustrative mode plots.
 - `sbp_verification.ipynb`: configuration, analysis steps and plots.
 - `src/calibration.py`: per-sub-thread position conversion and calibration files.
 - `src/motor.py`: real/simulated motor, stored position/home and travel limits.
@@ -159,7 +166,12 @@ correction or boost fit is applied in this workflow.
 
 ## Output
 
-The notebook writes `outputs/sbp_verification/ET_results.npz` and three plots.
+The notebook writes `outputs/sbp_verification/ET_results.npz` and includes all
+original verification diagnostic families. Its default three-line configuration
+has **19 rendered figures**, with editable labels and automatic PNG/PDF exports
+under `plots/verification/L3_Z1_G4/reference_assisted/`. Sampling, preprocessing,
+fields, integrals and mode checks have separate subfolders. Changing the line,
+plane or gap count, or disabling reference alignment, selects a separate folder.
 The NPZ keeps the original downstream input keys:
 
 | Array | Shape | Unit |
@@ -211,6 +223,12 @@ notebook selects the export root.
 
 ```text
 plots/
+  verification/L3_Z1_G4/reference_assisted/
+    sampling/
+    preprocessing/background/
+    fields/
+    integrals/frequency/
+    model_checks/
   1d/
     measurement/{setup,raw,transverse,incident_beam}/
     both/{fits,fields}/                   # selected GEOMETRY

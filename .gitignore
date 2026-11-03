@@ -4,6 +4,7 @@ __pycache__/
 data/
 outputs/
 /plots/
+/docs/_build/
 *.pyc
 config/measurement_config.json
 config/bead_pull_calibration.json
