@@ -20,4 +20,3 @@ extlinks = {
     "notebook": ("https://github.com/nabil-2/madmax-sbp/blob/main/%s", "%s"),
 }
 mathjax3_config = {"tex": {"tags": "none"}}
-
