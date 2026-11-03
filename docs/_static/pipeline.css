@@ -1,30 +1,27 @@
-:root { --ink: #173146; --accent: #156b85; --line: #dce7ec; }
-body { color: #243844; background: #fff; font-family: system-ui, sans-serif; }
-div.document { width: min(1180px, 96%); margin: 32px auto; }
-div.body { max-width: 880px; padding: 0 36px 40px; line-height: 1.65; }
-div.body h1, div.body h2, div.body h3 { font-family: inherit; color: var(--ink); }
-div.body h1 { font-size: 2.2em; margin-bottom: .5em; }
-div.body h2 { font-size: 1.45em; border-top: 1px solid var(--line); padding-top: 1em; margin-top: 1.8em; }
-div.body h3 { font-size: 1.13em; margin-top: 1.5em; }
-a, div.sphinxsidebar a { color: var(--accent); }
-div.sphinxsidebar { font-family: inherit; font-size: .92em; line-height: 1.55; }
-div.sphinxsidebar h3 { font-family: inherit; }
-div.sphinxsidebar .current > a { font-weight: 700; }
-div.sphinxsidebar ul ul { margin-left: 13px; }
-div.admonition { background: #f1f7fa; border: 1px solid var(--line); border-radius: 6px; padding: 12px 18px; }
-div.body .math { overflow-x: auto; padding: .35em 0; }
-div.body pre { border-radius: 5px; padding: 14px; }
-div.body table.docutils { width: 100%; border-collapse: collapse; font-size: .93em; }
-div.body table.docutils th, div.body table.docutils td { padding: 8px 12px; border-color: var(--line); }
-.workflow-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; margin: 28px 0; }
-.workflow-grid a { border: 1px solid var(--line); border-radius: 8px; padding: 20px; color: var(--ink); text-decoration: none; background: #f6f9fb; }
-.workflow-grid strong { display: block; margin-bottom: 8px; font-size: 1.1em; }
-.workflow-grid a:hover { border-color: var(--accent); background: #edf5f8; }
-.source-link { border-top: 1px solid var(--line); padding-top: 14px; }
-@media (max-width: 875px) {
-  div.document { width: 100%; margin: 0; }
-  div.body { padding: 20px; }
-  div.sphinxsidebar { position: static; width: auto; float: none; background: #f1f7fa; padding: 14px 20px; }
-  div.bodywrapper { margin: 0; }
+/* Keep Furo's typography, navigation and light/dark palettes. */
+.workflow-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 1rem;
+  margin: 1.5rem 0;
+}
+.workflow-grid a {
+  padding: 1.2rem;
+  border: 1px solid var(--color-background-border);
+  border-radius: .5rem;
+  background: var(--color-background-secondary);
+  color: var(--color-foreground-primary);
+  text-decoration: none;
+}
+.workflow-grid strong {
+  display: block;
+  margin-bottom: .5rem;
+}
+.workflow-grid a:hover,
+.workflow-grid a:focus-visible {
+  border-color: var(--color-brand-primary);
+}
+.math { overflow-x: auto; }
+@media (max-width: 640px) {
   .workflow-grid { grid-template-columns: 1fr; }
 }
