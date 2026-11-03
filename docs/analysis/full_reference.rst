@@ -1,52 +1,63 @@
 Full bead-pull comparison
 =========================
 
-Code: :codefile:`src/full_bead_comparison.py`, :codefile:`src/full_bead_model.py`.
-The 1D/3D notebooks display this comparison alongside their own results.
+The figures below are existing notebook exports, copied unchanged. Saved
+absolute normalizations differ; they have not been rescaled to agree.
+Click any plot to view it at full resolution.
 
-1. Read saved results, without rerunning the reference fit
-----------------------------------------------------------
+Full bead pull vs 1D
+--------------------
 
-``result_bf_21_0.jld2`` contains a 20.5–21.5 GHz sweep with 1,001 bins,
-28 longitudinal transverse-integral samples, fitted parameters and 100 saved
-Monte Carlo fit draws per frequency. The reader extracts numeric values and
-saved uncertainties, then caches them by the source-file hash. It does not
-analyze a raw full-grid reflection scan here.
+.. Exported by sbp_1d_analysis.ipynb from
+   plots/1d/full_bead_comparison/both/24_field_comparison_resonance.png
 
-2. Match frequencies and coordinates
-------------------------------------
+.. figure:: /_static/figures/full_reference/1d_field.png
+   :alt: Full and spider 1D transverse field integrals at 20.820 GHz, with absolute and normalized comparisons.
+   :width: 100%
+   :target: ../_static/figures/full_reference/1d_field.png
 
-Only acquired frequencies matching within 1 Hz are compared; no frequency
-interpolation is used. The displayed spider grid has 201 common bins. Each
-setup uses its own mirror origin:
+   **Electric field at 20.820 GHz.** Top: measured transverse field integrals
+   and finite-bead model fits. Bottom: model field integrals without the bead.
+   Left: saved absolute values; right: each profile normalized separately.
+   The spider fit adjusts disk gaps and thread z positions.
 
-.. math::
+.. Exported by sbp_1d_analysis.ipynb from
+   plots/1d/full_bead_comparison/both/22_boost_comparison.png
 
-   z_{\mathrm{full,out}}=z_{m,\mathrm{fit}}(\nu)-z_{\mathrm{saved}}.
+.. figure:: /_static/figures/full_reference/1d_boost.png
+   :alt: Saved full bead-pull boost compared with four spider 1D geometry fits, in absolute and peak-normalized units.
+   :width: 100%
+   :target: ../_static/figures/full_reference/1d_boost.png
 
-This aligns mirror coordinates, not geometries or sampled z positions.
+   **Boost factor.** Full bead pull against the four spider 1D geometry fits:
+   fixed, gaps only, thread z only, and both. Top: saved boost factors;
+   bottom: each curve divided by its own peak to compare spectral shape.
 
-3. Compare fields, boost and residuals
---------------------------------------
+Full bead pull vs 3D
+--------------------
 
-The full-reference boost and its uncertainty are read **as saved**. Reference
-field curves are evaluated at the saved mean parameters, including each disk's
-own thickness, permittivity and loss. They are not Monte Carlo mean fields.
-Reference curves retain the archive's own model-evaluation convention.
+.. Exported by sbp_3d_analysis.ipynb from
+   plots/3d/full_tilt/full_bead_comparison/fields_full_reference_20p825.png
 
-Absolute panels retain each result's normalization. Shape panels divide each
-boost curve by its own maximum, and each field-frequency column by its own
-maximum where indicated. Magnitude residuals use
+.. figure:: /_static/figures/full_reference/3d_field.png
+   :alt: Full-reference model field integral versus full-tilt spider 3D field integrals at the T1 to T3 midpoint sections, at 20.825 GHz.
+   :width: 100%
+   :target: ../_static/figures/full_reference/3d_field.png
 
-.. math::
+   **Electric field at 20.825 GHz.** The full-reference curve uses its saved
+   1D fit. Spider points integrate the fitted full-tilt 3D field over horizontal
+   sections at the T1–T3 midpoints where the full aperture lies in air. Both
+   show model field integrals without the bead, rather than raw measurements.
 
-   r(\nu)=\frac{\|m(z,\nu)-|E_T(z,\nu)|\|_2}{\||E_T(z,\nu)|\|_2}
+.. Exported by sbp_3d_analysis.ipynb from
+   plots/3d/full_tilt/full_bead_comparison/boost_full_reference.png
 
-on each measurement's own sampled z. Spider 3D field-integral points are model
-integrals over valid horizontal midpoint sections, not new measurements along z.
+.. figure:: /_static/figures/full_reference/3d_boost.png
+   :alt: Full bead-pull boost and full-tilt spider 3D boost, with uncertainty bands, on axes from 20 to 22 GHz.
+   :width: 100%
+   :target: ../_static/figures/full_reference/3d_boost.png
 
-The normalization audit finds a factor approximately **20.16129** between the
-saved reference boost and the spider formula with the archive's saved Monte
-Carlo overlap convention. Its physical power/coupling metadata are incomplete;
-no inferred correction is applied. Consequently, absolute agreement of the
-two boost curves is not an independently calibrated validation.
+   **Boost factor.** Full bead pull against the full-tilt spider 3D fit.
+   Shading shows the saved full-scan one-standard-deviation uncertainty and
+   the conditional spider 16–84% band. The full reference covers
+   20.5–21.5 GHz; the axes span 20–22 GHz.

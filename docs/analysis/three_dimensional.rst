@@ -8,6 +8,10 @@ Notebook: :notebook:`sbp_3d_analysis.ipynb`.
 Preparation: :codefile:`src/analysis_3d_inputs.py`.
 Fit: :codefile:`src/analysis_3d.py`.
 
+Fitting model: `BoostFractor.jl <https://github.com/nabil-2/BoostFractor.jl>`_,
+used through this repository's scalar-field adapters for tilted disks and
+thread paths. The booster model is treated as a black box.
+
 1. Prepare the measured reflection
 ----------------------------------
 
@@ -64,10 +68,15 @@ The preparation file also stores a circular-Gaussian diagnostic integral:
    \qquad q=\frac{w^{-2}-i\eta/2}{(0.1\,\mathrm m)^2},\quad
    s_c=0.1u_c\,\mathrm m.
 
-Here :math:`\kappa_b(\nu)` is supplied by the :doc:`bead-response interface
-<bead_response>` with the 1-W convention, and :math:`I_0` is the modified
+Here :math:`\kappa_b(\nu)` is supplied by the black-box bead response
+with the 1-W convention, and :math:`I_0` is the modified
 Bessel function. The integral uses 64-point
 Gauss–Legendre quadrature. This diagnostic does **not** enter the 3D objective.
+
+For the bead response, see J. Egge et al., *Experimental determination of
+axion signal power of dish antennas and dielectric haloscopes using the
+reciprocity approach*, `JCAP 04 (2024) 005
+<https://doi.org/10.1088/1475-7516/2024/04/005>`_, Section 3 and Appendix B.
 
 3. Supply the independent incident beam
 ---------------------------------------
@@ -89,7 +98,7 @@ The supplied magnitude data have no measured phase; the baseline assumes flat
 phase. Scan z = 50–100 mm is not registered to the spider mirror. Its profile
 mixture is placed at the model's outer reference face; propagation from a known
 physical measurement plane is not inferred. Beam parameters stay fixed during
-this geometry fit. The :doc:`model_interface` describes the solver inputs and outputs.
+this geometry fit.
 
 4. Parameterize disks and actual bead paths
 -------------------------------------------
@@ -123,7 +132,7 @@ nominal-geometry penalty in this 3D objective.
 ----------------------------------------------------
 
 The solver returns incoming/outgoing directional fields. Convert their
-phasor convention before applying the shared :doc:`bead_response`:
+phasor convention before applying the shared black-box bead response:
 
 .. math::
 
@@ -175,7 +184,7 @@ starts. A small pooled residual does not establish a unique physical geometry.
 7. Calculate boost and diagnostic fields
 ----------------------------------------
 
-The :doc:`model_interface` computes the receive-coupled geometry response
+The 3D booster model computes the receive-coupled geometry response
 :math:`\beta^2_{\mathrm{recv},g}` for the fixed 1-W beam. Since the reflection
 template is quadratic in field, its fitted amplitude factor is
 :math:`\sqrt{|c_{\nu}|}` and its power factor is :math:`|c_{\nu}|`:

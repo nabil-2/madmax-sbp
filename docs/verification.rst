@@ -90,7 +90,7 @@ along x then y for the full grid, or along the retained line coordinate:
    E_{\mathrm{conv}}=C_b(\nu)\,q.
 
 The conversion factor :math:`C_b(\nu)` comes from the
-:doc:`bead-response interface <analysis/bead_response>`, using the configured
+bead-response calculation, using the configured
 bead and 1-W convention. This produces the finite-bead field estimate; the
 response calculation itself is treated as a black box.
 

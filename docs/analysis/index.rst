@@ -28,8 +28,6 @@ pages document their inputs, outputs and fitting steps.
 
    one_dimensional
    three_dimensional
-   model_interface
-   bead_response
    full_reference
 
 Coordinates and defaults
@@ -67,7 +65,7 @@ Units and plot exports
 
 Local scalar fields are in V/m; :math:`E_T=\int E\,dA` is in V m.
 The reference incident-power convention is 1 W. A finite-bead field proxy is
-distinct from the field without the bead; see :doc:`bead_response`.
+distinct from the field without the bead.
 
 The notebooks reproduce all plots and save PNG/PDF files to the ignored
 ``plots/1d/`` and ``plots/3d/full_tilt/`` trees. Titles, axes, legends, colorbars

@@ -5,7 +5,7 @@
 
 Notebook: :notebook:`sbp_1d_analysis.ipynb`.
 Field reconstruction: :codefile:`src/sbp_analysis.py`.
-Longitudinal fit: :codefile:`src/fit_1D.py`.
+Fitting model: the planar multilayer 1D booster in :codefile:`src/fit_1D.py`.
 
 1. Read traces and subtract the reference
 -----------------------------------------
@@ -54,7 +54,7 @@ transverse Gaussian or Bessel fit.
 
 Unwrap :math:`\theta=\arg \Delta\Gamma_r` in radius, then align the centre's branch across
 frequency. Apply the conversion factor :math:`C_b(\nu)` supplied by the
-:doc:`bead-response interface <bead_response>`:
+black-box bead-response calculation:
 
 .. math::
 
@@ -65,6 +65,11 @@ frequency. Apply the conversion factor :math:`C_b(\nu)` supplied by the
 The integral is trapezoidal on the radial grid. Its phase branch is retained
 for diagnostics; the longitudinal fit uses :math:`y_{j\nu}=|E_T(z_j,\nu)|`.
 The reconstruction file is ``integrated_fields.npz``.
+
+For the bead response, see J. Egge et al., *Experimental determination of
+axion signal power of dish antennas and dielectric haloscopes using the
+reciprocity approach*, `JCAP 04 (2024) 005
+<https://doi.org/10.1088/1475-7516/2024/04/005>`_, Section 3 and Appendix B.
 
 4. Booster-model interface
 --------------------------
@@ -90,7 +95,7 @@ needed for comparison and boost calculation.
      - Longitudinal overlap :math:`I(\nu)` used to calculate boost, including
        the model's mirror and exterior contributions
 
-The finite-bead response is the separate :doc:`bead_response` black box.
+The finite-bead response is treated as a separate black box.
 The whole bead must lie in vacuum. A fitted amplitude scales the returned
 shape and overlap; it is the measurement that sets their normalization.
 Internal propagation, interface relations and overlap evaluation are left to
