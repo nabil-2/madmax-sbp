@@ -53,12 +53,12 @@ transverse Gaussian or Bessel fit.
 ---------------------------------
 
 Unwrap :math:`\theta=\arg D_r` in radius, then align the centre's branch across
-frequency. With the polarizability from :doc:`bead_response`:
+frequency. Apply the conversion factor :math:`C_b(f)` supplied by the
+:doc:`bead-response interface <bead_response>`:
 
 .. math::
 
-   E_{\mathrm{conv}}(r,f)=
-   \sqrt{\frac{4P_{\mathrm{in}}}{i\omega\epsilon_0\alpha_0}}
+   E_{\mathrm{conv}}(r,f)=C_b(f)
    \sqrt{|D_r|}\,e^{i\theta/2},\qquad
    E_T(f)=2\pi\int_0^{R_{\mathrm{int}}}rE_{\mathrm{conv}}(r,f)\,dr.
 

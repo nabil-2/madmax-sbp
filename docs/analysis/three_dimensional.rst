@@ -60,11 +60,13 @@ The preparation file also stores a circular-Gaussian diagnostic integral:
 .. math::
 
    E_{T,\mathrm{diag}}=\sqrt{A/\kappa_b}\;2\pi e^{-q s_c^2}
-       \int_0^R r e^{-qr^2}I_0(2qrs_c)\,dr,+   \qquad q=\frac{w^{-2}-i\eta/2}{(0.1\,\mathrm m)^2},\quad
+       \int_0^R r e^{-qr^2}I_0(2qrs_c)\,dr,
+   \qquad q=\frac{w^{-2}-i\eta/2}{(0.1\,\mathrm m)^2},\quad
    s_c=0.1u_c\,\mathrm m.
 
-Here :math:`\kappa_b=i\omega\epsilon_0\alpha_0/4` for 1 W and
-:math:`I_0` is the modified Bessel function. The integral uses 64-point
+Here :math:`\kappa_b(f)` is supplied by the :doc:`bead-response interface
+<bead_response>` with the 1-W convention, and :math:`I_0` is the modified
+Bessel function. The integral uses 64-point
 Gauss–Legendre quadrature. This diagnostic does **not** enter the 3D objective.
 
 3. Supply the independent incident beam
@@ -126,7 +128,7 @@ phasor convention before applying the shared :doc:`bead_response`:
 
    e_-=(E_{\mathrm{inward}})^*,\quad
    e_+=(E_{\mathrm{outward}})^*,\qquad
-   Q=\delta_e(e_+^2+e_-^2)+2\delta_c e_+e_-,\qquad
+   Q=\mathcal R_b(e_+,e_-;f),\qquad
    t_{jif}=\overline{\kappa_b(f)Q_{jif}}.
 
 The final conjugation is part of the stored-S22 convention and is retained from

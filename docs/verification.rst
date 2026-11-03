@@ -86,13 +86,12 @@ along x then y for the full grid, or along the retained line coordinate:
    q=\sqrt{|\Delta\Gamma|}\,
    \exp\{i\operatorname{unwrap}_{\pi}[\arg\sqrt{\Delta\Gamma}]\},
    \qquad
-   E_{\mathrm{conv}}=
-   \sqrt{\frac{4P_{\mathrm{in}}}{i\omega\epsilon_0\alpha_0}}\;q.
+   E_{\mathrm{conv}}=C_b(f)\,q.
 
-Here :math:`\omega=2\pi f`, :math:`P_{\mathrm{in}}=1\,\mathrm W`, and
-:math:`\alpha_0=4\pi r_b^3(\epsilon_b-1)/(\epsilon_b+2)` uses
-:math:`r_b=1.465\,\mathrm{mm}`, :math:`\epsilon_b=9.23`.
-This is the finite-bead field estimate, without longitudinal Mie deconvolution.
+The conversion factor :math:`C_b(f)` comes from the
+:doc:`bead-response interface <analysis/bead_response>`, using the configured
+bead and 1-W convention. This produces the finite-bead field estimate; the
+response calculation itself is treated as a black box.
 
 5. Optional full-reference alignment
 ------------------------------------
