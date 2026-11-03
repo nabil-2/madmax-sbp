@@ -144,8 +144,7 @@ def matched_frequency(data, full, frequency_GHz=21.0):
     return int(spider[index]), int(reference[index])
 
 
-# Plotting uses saved means. Absolute panels retain each archive's normalization;
-# separate shape panels explicitly divide by each curve's own maximum.
+# Plotting uses saved means and retains each archive's absolute normalization.
 from . import pipeline_plots as _plots
 from .full_bead_model import disk_edges, evaluate_full_model
 
@@ -208,37 +207,31 @@ def reference_peak_frequency(data, full):
 def plot_boost_comparison(
     data, full, *,
     title="Boost comparison · absolute values retain saved normalization",
-    shape_title="Spectral shape and resonance position · each 1D curve normalized separately",
     x_label="Frequency [GHz]",
     y_label="Saved power boost β²",
-    shape_y_label="β² / own maximum in comparison band",
     full_curve_label="Full bead pull · as saved",
-    full_shape_label="Full bead pull",
     spider_curve_label_template="Spider 1D · {mode}",
     trial_curve_label="Spider 3D trial · receive-coupled",
 ):
-    """As-saved boosts plus independently peak-normalized spectral shapes."""
-    figure, axes = plt.subplots(2, 1, figsize=(12.5, 8), sharex=True, constrained_layout=True)
+    """Compare boost factors in their saved absolute normalization."""
+    figure, axis = plt.subplots(figsize=(12.5, 4.6), constrained_layout=True)
     low, high = full.frequencies_Hz[[0, -1]]/1e9
-    axes[0].plot(full.frequencies_Hz/1e9, full.beta2, color=_FULL_COLOR, lw=2.4, label=render_text(full_curve_label))
-    axes[1].plot(full.frequencies_Hz/1e9, full.beta2/full.beta2.max(), color=_FULL_COLOR, lw=2.4, label=render_text(full_shape_label))
+    axis.plot(full.frequencies_Hz/1e9, full.beta2, color=_FULL_COLOR, lw=2.4, label=render_text(full_curve_label))
     for mode, color in _plots._FIT_GEOMETRY_COLORS.items():
         if mode not in data.fits_1d:
             continue
         fit = data.fits_1d[mode]
         select = (fit["frequencies_Hz"] >= low*1e9) & (fit["frequencies_Hz"] <= high*1e9)
         frequency, values = fit["frequencies_Hz"][select]/1e9, fit["beta2"][select]
-        axes[0].plot(frequency, values, color=color, label=render_text(spider_curve_label_template, mode=mode))
-        axes[1].plot(frequency, values/values.max(), color=color)
+        axis.plot(frequency, values, color=color, label=render_text(spider_curve_label_template, mode=mode))
     if data.fit_3d is not None:
         trial = data.fit_3d
         keep = (trial["frequencies_Hz"] >= low*1e9) & (trial["frequencies_Hz"] <= high*1e9)
-        axes[0].plot(trial["frequencies_Hz"][keep]/1e9, trial["beta2"][keep], "D", color="#c54036", markersize=6,
-                     label=render_text(trial_curve_label))
-    axes[0].set(ylabel=render_text(y_label), title=render_text(title), ylim=(0, None))
-    axes[0].legend(fontsize=9, ncol=2)
-    axes[1].set(xlabel=render_text(x_label), ylabel=render_text(shape_y_label), ylim=(0, 1.08), xlim=(low, high),
-                title=render_text(shape_title))
+        axis.plot(trial["frequencies_Hz"][keep]/1e9, trial["beta2"][keep], "D", color="#c54036", markersize=6,
+                  label=render_text(trial_curve_label))
+    axis.set(xlabel=render_text(x_label), ylabel=render_text(y_label), title=render_text(title),
+             ylim=(0, None), xlim=(low, high))
+    axis.legend(fontsize=9, ncol=2)
     return figure
 
 
@@ -272,15 +265,11 @@ def _profile_comparison(data, full, frequency_GHz, geometry):
 
 def plot_field_comparison(
     data, full, frequency_GHz=21.0, geometry="both", *,
-    title="Full versus spider bead pull · common saved frequency {frequency_GHz:.4f} GHz\nGrey disks: full fit · dotted disks: spider fit · no amplitude alignment in left panels",
+    title="Full versus spider bead pull · common saved frequency {frequency_GHz:.4f} GHz\nGrey disks: full fit · dotted disks: spider fit · saved absolute values",
     x_label="Distance outward from each fitted mirror [mm]",
     y_label="|ET| [V m] · as saved",
-    normalized_effective_y_label="|ET| / own maximum measured |ET|",
-    normalized_field_y_label="|ET| / own maximum over shown z",
     effective_field_title="Finite-bead effective field",
-    normalized_effective_field_title="Effective field · shape comparison",
     deconvolved_field_title="Deconvolved field",
-    normalized_deconvolved_field_title="Deconvolved field · shape comparison",
     full_bead_label="Full · bead model at mean parameters",
     spider_bead_label_template="Spider {geometry} · bead model",
     full_measured_label_template="Full · {n_full} measured integrals",
@@ -288,34 +277,28 @@ def plot_field_comparison(
     full_field_label="Full · model at mean parameters",
     spider_field_label_template="Spider {geometry} · model",
 ):
-    """Measured and fitted ET with absolute and independently normalized views."""
+    """Compare measured and fitted ET in their saved absolute normalization."""
     si, fi, frequency, fit, config, params, z, reference, spider, full_bead, spider_bead = _profile_comparison(data, full, frequency_GHz, geometry)
-    figure, axes = plt.subplots(2, 2, figsize=(14, 9), sharex=True, constrained_layout=True)
+    figure, axes = plt.subplots(2, 1, figsize=(9, 8), sharex=True, constrained_layout=True)
     color = _plots._FIT_GEOMETRY_COLORS.get(geometry, "C0")
     full_measured, spider_measured = abs(full.ET[:, fi]), abs(fit["ET_measured"][:, si])
     full_true = abs(reference.field[:, 0])
     spider_true = abs(spider.field[:, 0]*fit["amplitude"][si])
     context = dict(frequency_GHz=frequency/1e9, geometry=geometry,
                    n_full=len(full_measured), n_spider=len(spider_measured))
-    for column in range(2):
-        full_scale = np.max(full_measured) if column else 1
-        spider_scale = np.max(spider_measured) if column else 1
-        axis = axes[0, column]
-        axis.plot(z*1e3, full_bead/full_scale, "--", color=_FULL_COLOR, label=render_text(full_bead_label, **context))
-        axis.plot(z*1e3, spider_bead/spider_scale, "--", color=color, label=render_text(spider_bead_label_template, **context))
-        axis.scatter(full.z_from_mirror(fi)*1e3, full_measured/full_scale, facecolors="white", edgecolors=_FULL_COLOR,
-                     s=23, zorder=5, label=render_text(full_measured_label_template, **context))
-        axis.scatter(fit["z_from_mirror_m"]*1e3, spider_measured/spider_scale, color=color, edgecolors="white", s=48,
-                     zorder=6, label=render_text(spider_measured_label_template, **context))
-        axis.set(ylabel=render_text(y_label if column == 0 else normalized_effective_y_label, **context),
-                 title=render_text(effective_field_title if column == 0 else normalized_effective_field_title, **context))
-        lower = axes[1, column]
-        lower.plot(z*1e3, full_true/(full_true.max() if column else 1), color=_FULL_COLOR,
-                   label=render_text(full_field_label, **context))
-        lower.plot(z*1e3, spider_true/(spider_true.max() if column else 1), color=color, label=render_text(spider_field_label_template, **context))
-        lower.set(xlabel=render_text(x_label, **context),
-                  ylabel=render_text(y_label if column == 0 else normalized_field_y_label, **context),
-                  title=render_text(deconvolved_field_title if column == 0 else normalized_deconvolved_field_title, **context))
+    axis = axes[0]
+    axis.plot(z*1e3, full_bead, "--", color=_FULL_COLOR, label=render_text(full_bead_label, **context))
+    axis.plot(z*1e3, spider_bead, "--", color=color, label=render_text(spider_bead_label_template, **context))
+    axis.scatter(full.z_from_mirror(fi)*1e3, full_measured, facecolors="white", edgecolors=_FULL_COLOR,
+                 s=23, zorder=5, label=render_text(full_measured_label_template, **context))
+    axis.scatter(fit["z_from_mirror_m"]*1e3, spider_measured, color=color, edgecolors="white", s=48,
+                 zorder=6, label=render_text(spider_measured_label_template, **context))
+    axis.set(ylabel=render_text(y_label, **context), title=render_text(effective_field_title, **context))
+    lower = axes[1]
+    lower.plot(z*1e3, full_true, color=_FULL_COLOR, label=render_text(full_field_label, **context))
+    lower.plot(z*1e3, spider_true, color=color, label=render_text(spider_field_label_template, **context))
+    lower.set(xlabel=render_text(x_label, **context), ylabel=render_text(y_label, **context),
+              title=render_text(deconvolved_field_title, **context))
     for axis in axes.ravel():
         for start, end in disk_edges(params):
             axis.axvspan(start*1e3, end*1e3, color="0.5", alpha=0.13, zorder=0)
@@ -323,8 +306,8 @@ def plot_field_comparison(
             axis.axvspan(start*1e3, end*1e3, facecolor="none", edgecolor=color, ls=":", lw=1, zorder=0)
         axis.set_xlim(0, z[-1]*1e3)
         axis.set_ylim(bottom=0)
-    axes[0, 0].legend(fontsize=7.5)
-    axes[1, 0].legend(fontsize=8)
+    axes[0].legend(fontsize=7.5)
+    axes[1].legend(fontsize=8)
     figure.suptitle(render_text(title, **context))
     return figure
 
@@ -400,21 +383,17 @@ def _common_model_grid(data, full, geometry, points=240):
 
 
 def plot_field_map_comparison(
-    data, full, geometry="both", normalized=False, *,
+    data, full, geometry="both", *,
     title="Longitudinal field magnitudes · shared colour scale; saved normalizations",
-    normalized_title="Longitudinal field patterns · independently normalized columns",
     x_label="Common acquired frequency [GHz]",
     y_label="Distance outward from mirror [mm]",
     colorbar_label="Deconvolved |ET| [V m] · as saved",
-    normalized_colorbar_label="|ET| / own maximum at each frequency",
     full_panel_title="Full · model at mean parameters",
     spider_panel_title_template="Spider · {geometry}",
 ):
     """Dense models on exactly matched frequencies, preserving per-disk properties."""
     frequency, z, reference, spider = _common_model_grid(data, full, geometry)
     maps = [abs(reference), abs(spider)]
-    if normalized:
-        maps = [np.divide(value, value.max(axis=0), out=np.zeros_like(value), where=value.max(axis=0)>0) for value in maps]
     maximum = max(value.max() for value in maps)
     figure, axes = plt.subplots(1, 2, figsize=(13, 5.5), sharex=True, sharey=True, constrained_layout=True)
     context = dict(geometry=geometry)
@@ -422,8 +401,8 @@ def plot_field_map_comparison(
         image = axis.pcolormesh(frequency/1e9, z*1e3, values, shading="auto", cmap="magma", vmin=0, vmax=maximum, rasterized=True)
         axis.set(title=render_text(label, **context), xlabel=render_text(x_label, **context))
     axes[0].set_ylabel(render_text(y_label, **context))
-    figure.colorbar(image, ax=list(axes), label=render_text(normalized_colorbar_label if normalized else colorbar_label, **context))
-    figure.suptitle(render_text(normalized_title if normalized else title, **context))
+    figure.colorbar(image, ax=list(axes), label=render_text(colorbar_label, **context))
+    figure.suptitle(render_text(title, **context))
     return figure
 
 
@@ -542,7 +521,7 @@ def normalization_summary(full, *, compact=False):
             display(Markdown("**Normalization:** unavailable; values are shown as saved."))
             return
         display(Markdown("**Normalization:** the archive does not expose enough bookkeeping to compare its absolute normalization. "
-                         "The comparison retains the saved values and shows normalized shapes separately."))
+                         "The comparison retains the saved absolute values."))
         return
     ratio = audit["saved_to_reference_factor"]
     inverse = audit["inverse_input"]
@@ -557,5 +536,5 @@ def normalization_summary(full, *, compact=False):
         f"contains an inverse factor **{inverse.min():.6g}–{inverse.max():.6g}**; "
         f"the remaining multiplier is **{np.median(audit['factor_times_inverse_input']):.6g}**. "
         "The file does not name their physical origin. No power or coupling correction has been guessed or applied. "
-        "Absolute panels show **as-saved** values; the separate normalized panels compare shape. "
+        "All comparison plots show **as-saved** absolute values. "
         "The full-pull input-power and correction metadata are needed before interpreting an absolute amplitude difference."))

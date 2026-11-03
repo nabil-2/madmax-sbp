@@ -11,27 +11,27 @@ Full bead pull vs 1D
 .. Exported by sbp_1d_analysis.ipynb from
    plots/1d/full_bead_comparison/both/24_field_comparison_resonance.png
 
-.. figure:: /_static/figures/full_reference/1d_field.png
-   :alt: Full and spider 1D transverse field integrals at 20.820 GHz, with absolute and normalized comparisons.
+.. figure:: /_static/figures/full_reference/1d_field_absolute.png
+   :alt: Full and spider 1D transverse field integrals at 20.820 GHz in their saved absolute units.
    :width: 100%
-   :target: ../_static/figures/full_reference/1d_field.png
+   :target: ../_static/figures/full_reference/1d_field_absolute.png
 
    **Electric field at 20.820 GHz.** Top: measured transverse field integrals
    and finite-bead model fits. Bottom: model field integrals without the bead.
-   Left: saved absolute values; right: each profile normalized separately.
-   The spider fit adjusts disk gaps and thread z positions.
+   Both panels retain saved absolute values. The spider fit adjusts disk gaps
+   and thread z positions.
 
 .. Exported by sbp_1d_analysis.ipynb from
    plots/1d/full_bead_comparison/both/22_boost_comparison.png
 
-.. figure:: /_static/figures/full_reference/1d_boost.png
-   :alt: Saved full bead-pull boost compared with four spider 1D geometry fits, in absolute and peak-normalized units.
+.. figure:: /_static/figures/full_reference/1d_boost_absolute.png
+   :alt: Saved absolute full bead-pull boost compared with four spider 1D geometry fits.
    :width: 100%
-   :target: ../_static/figures/full_reference/1d_boost.png
+   :target: ../_static/figures/full_reference/1d_boost_absolute.png
 
    **Boost factor.** Full bead pull against the four spider 1D geometry fits:
-   fixed, gaps only, thread z only, and both. Top: saved boost factors;
-   bottom: each curve divided by its own peak to compare spectral shape.
+   fixed, gaps only, thread z only, and both. All curves retain their saved
+   absolute boost factors.
 
 Full bead pull vs 3D
 --------------------
