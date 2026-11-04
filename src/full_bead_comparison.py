@@ -121,6 +121,25 @@ def load_full_bead(path=DATA_DIR / "full_bead_pull/result_bf_21_0.jld2", *, cach
     return full
 
 
+def field_reference(full, frequency_GHz=20.825, z_m=None):
+    """Full-scan measured integrals and saved mean-parameter model for plotting."""
+    frequency = frequency_GHz * 1e9
+    k = int(np.argmin(abs(full.frequencies_Hz - frequency)))
+    if abs(full.frequencies_Hz[k] - frequency) > 1:
+        raise ValueError("The field comparison requires an acquired full-scan frequency.")
+    z = np.linspace(0, 0.05, 1001) if z_m is None else np.asarray(z_m, float)
+    parameters = full.parameters_at(k)
+    model = evaluate_full_model(frequency, z, parameters)
+    edges = disk_edges(parameters)
+    bead = _mask_bead_centres(model.bead_magnitude[:, 0], z, edges, parameters["r_b"])
+    return dict(
+        frequency_hz=np.array([frequency]), z_m=z,
+        field_Vm=model.field.T, bead_field_Vm=bead[None],
+        measured_z_m=full.z_from_mirror(k), measured_field_Vm=full.ET[:, k],
+        disk_edges_m=edges,
+    )
+
+
 def common_frequency_indices(data, full, geometry="both"):
     """Match actual acquired bins within one Hz; never interpolate boost values."""
     frequency = np.asarray(_plots._fitplot_result(data, geometry)["frequencies_Hz"])

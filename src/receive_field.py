@@ -188,15 +188,18 @@ class ReceiveModel:
         )
         return matrices, eps, gaps
 
-    def finite_bead_field(self, waves):
+    def finite_bead_field(self, waves, frequency_index=None):
         # Convert BF exp(-ikd) phasor into the existing validated outgoing-h1
         # Mie convention before combining directional fields.
         em = waves[..., 0].conj()
         ep = waves[..., 1].conj()
-        shape = (len(self.f),) + (1,) * (ep.ndim - 1)
+        de, dc = self.de, self.dc
+        if frequency_index is not None:
+            de = de[frequency_index : frequency_index + 1]
+            dc = dc[frequency_index : frequency_index + 1]
+        shape = (len(de),) + (1,) * (ep.ndim - 1)
         squared = (
-            self.de.reshape(shape) * (ep * ep + em * em)
-            + 2 * self.dc.reshape(shape) * ep * em
+            de.reshape(shape) * (ep * ep + em * em) + 2 * dc.reshape(shape) * ep * em
         )
         total = ep + em
         root = np.sqrt(squared)

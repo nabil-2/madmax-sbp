@@ -50,14 +50,19 @@ saved 3D geometry; the geometry has not been reoptimized after that removal.
    plots/3d/full_tilt/full_bead_comparison/fields_full_reference_20p825.png
 
 .. figure:: /_static/figures/full_reference/3d_field.png
-   :alt: Full-reference model field integral versus full-tilt spider 3D field integrals at the T1 to T3 midpoint sections, at 20.825 GHz.
+   :alt: Two-panel comparison at 20.825 GHz: finite-bead transverse integrals and measurement-derived estimates above, and full-reference and spider 3D fields without the bead below, including T0–T3.
    :width: 100%
    :target: ../_static/figures/full_reference/3d_field.png
 
-   **Electric field at 20.825 GHz.** The full-reference curve uses its saved
-   1D fit. Spider points integrate the fitted full-tilt 3D field over horizontal
-   sections at the T1–T3 midpoints where the full aperture lies in air. Both
-   show model field integrals without the bead, rather than raw measurements.
+   **Electric field at 20.825 GHz.** Top: saved full-scan measured integrals,
+   its finite-bead model, the 3D finite-bead curve, and the same radial
+   reconstruction of the spider lines used in the 1D comparison. These points
+   are diagnostics, not inputs to the 3D fit, and are placed at fitted thread
+   midpoints. Bottom:
+   model field integrals without the bead, including T0–T3. The 3D curves use
+   horizontal sections over the 150 mm-radius aperture. Gaps exclude sections
+   crossing tilted disks; the upper curve additionally requires bead clearance.
+   The full reference uses its saved 1D parameters. No geometry or scale is refitted.
 
 .. Exported by sbp_3d_analysis.ipynb from
    plots/3d/full_tilt/full_bead_comparison/boost_full_reference.png

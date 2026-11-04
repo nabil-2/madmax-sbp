@@ -36,7 +36,9 @@ def load(path):
         "reflection_preprocessing" not in result
         or result["reflection_preprocessing"].item() != "none"
     ):
-        raise ValueError("Saved 3D results use the removed template correction; regenerate results from measured S22.")
+        raise ValueError(
+            "Saved 3D results use the removed template correction; regenerate results from measured S22."
+        )
     return result
 
 
@@ -129,8 +131,11 @@ def boost_figures(
                 UNCERTAINTY
                 + f" One common complex scale uses {SCOPE}. "
                 + f"{int(np.sum(a['eligible']))} bins pass the measurement profile-quality selection; other frequencies are diagnostics. "
-                + ("The saved geometry is held fixed while scale and backgrounds are refitted to measured S22."
-                   if "geometry_refitted" in a and not bool(a["geometry_refitted"]) else ""),
+                + (
+                    "The saved geometry is held fixed while scale and backgrounds are refitted to measured S22."
+                    if "geometry_refitted" in a and not bool(a["geometry_refitted"])
+                    else ""
+                ),
             )
         )
     return entries
@@ -998,69 +1003,136 @@ def residual_figure(
         + (
             "T0 is a held-out prediction and does not determine the common coefficient. "
             if len(FIT_THREADS) == 3
-            else ("The dashed control uses the new fixed-thread tilt geometry, with its common coefficient reprofiled on the same four chords; geometry is not refitted for this diagnostic. "
-                  if control is not None else "")
+            else (
+                "The dashed control uses the new fixed-thread tilt geometry, with its common coefficient reprofiled on the same four chords; geometry is not refitted for this diagnostic. "
+                if control is not None
+                else ""
+            )
         )
         + "Equal sample weights within a frequency give stronger signals more influence. A small pooled residual does not imply agreement on each weak thread.",
     )
 
 
 def reference_field_figure(
-    maps,
+    sections,
     reference,
     *,
+    spider_estimates=None,
     frequency_GHz=20.825,
-    title_template="Model field integrals · {frequency_GHz:.3f} GHz",
-    x_label="Distance from mirror z [mm]",
-    y_label="Unperturbed $|E_T|$ [V m]",
-    full_curve_label="Full bead pull · reconstructed 1D model",
-    spider_curve_label="Spider · 3D horizontal model sections",
+    title_template="Full versus spider bead pull · {frequency_GHz:.4f} GHz",
+    x_label="Distance outward from each fitted mirror [mm]",
+    y_label="$|E_T|$ [V m]",
+    effective_field_title="Finite-bead effective field",
+    deconvolved_field_title="Deconvolved field",
+    full_bead_label="Full · bead model at mean parameters",
+    spider_bead_label="Spider · 3D bead model",
+    full_measured_label="Full · measured integrals",
+    spider_measured_label="Spider · radial line reconstruction",
+    full_curve_label="Full · model at mean parameters",
+    spider_curve_label="Spider · 3D horizontal sections",
     thread_label_template="T{thread_index}",
 ):
-    f = frequency_GHz
-    k = at_frequency(maps, f)
-    kr = at_frequency(reference, f)
-    fig, ax = plt.subplots(figsize=(6.5, 3.8), layout="constrained")
-    ax.plot(
-        reference["z_m"] * 1000,
-        abs(reference["field_Vm"][kr]),
-        color="#42484D",
-        ls="--",
-        lw=1.5,
-        label=full_curve_label,
+    """Absolute field integrals with the same two panels as the 1D comparison.
+
+    Spider measurement-derived points are optional rotational line reconstructions,
+    not the complex-reflection samples fitted by the 3D model.
+    """
+    k = at_frequency(sections, frequency_GHz)
+    kr = at_frequency(reference, frequency_GHz)
+    fig, axes = plt.subplots(2, 1, figsize=(9, 8), sharex=True, layout="constrained")
+    z = sections["z_m"]
+    context = dict(frequency_GHz=frequency_GHz)
+    for axis, reference_key, spider_key, full_label, spider_label in (
+        (axes[0], "bead_field_Vm", "bead_field_Vm", full_bead_label, spider_bead_label),
+        (axes[1], "field_Vm", "field_Vm", full_curve_label, spider_curve_label),
+    ):
+        axis.plot(
+            reference["z_m"] * 1000,
+            abs(reference[reference_key][kr]),
+            "--",
+            color="#42484D",
+            lw=1.6,
+            label=render_text(full_label, **context),
+        )
+        axis.plot(
+            z * 1000,
+            abs(sections[spider_key][k]),
+            "--" if axis is axes[0] else "-",
+            color=COLOR,
+            lw=1.7,
+            label=render_text(spider_label, **context),
+        )
+    axes[0].scatter(
+        reference["measured_z_m"] * 1000,
+        abs(reference["measured_field_Vm"]),
+        facecolors="white",
+        edgecolors="#42484D",
+        s=23,
+        zorder=5,
+        label=render_text(full_measured_label, **context),
     )
-    valid = maps["coherent_integral_full_aperture_in_air"][k].astype(bool)
-    z = maps["thread_midpoint_z_mm"][1:]
-    values = abs(maps["coherent_transverse_integral_Vm"][k])
-    ax.plot(
-        z[valid],
-        values[valid],
-        "o",
-        color=COLOR,
-        ms=6,
-        label=spider_curve_label,
-    )
-    for t in range(3):
-        if valid[t]:
-            ax.annotate(
-                render_text(thread_label_template, thread_index=t + 1),
-                (z[t], values[t]),
-                xytext=(4, 5),
+    midpoint = sections["thread_midpoint_z_mm"]
+    if spider_estimates is not None:
+        axes[0].scatter(
+            midpoint,
+            abs(spider_estimates),
+            color="#e88a45",
+            edgecolors="white",
+            s=48,
+            zorder=6,
+            label=render_text(spider_measured_label, **context),
+        )
+        for thread, position, value in zip(range(4), midpoint, abs(spider_estimates)):
+            axes[0].annotate(
+                render_text(thread_label_template, thread_index=thread),
+                (position, value),
+                xytext=(5, 6),
                 textcoords="offset points",
-                fontsize=8,
+                color=THREAD_COLORS[thread],
+                fontsize=8.5,
             )
-    ax.set(
-        xlim=(0, 50),
-        ylim=(0, None),
-        xlabel=x_label,
-        ylabel=y_label,
-        title=render_text(title_template, frequency_GHz=f),
-    )
-    ax.grid(alpha=0.15)
-    ax.legend(fontsize=8)
+    indices = np.array([np.argmin(abs(z - position * 0.001)) for position in midpoint])
+    for thread, position, i in zip(range(4), midpoint, indices):
+        if (
+            i < len(z)
+            and abs(z[i] - position * 0.001) < 1e-12
+            and np.isfinite(sections["field_Vm"][k, i])
+        ):
+            value = abs(sections["field_Vm"][k, i])
+            axes[1].plot(position, value, "o", ms=4, color=COLOR)
+            axes[1].annotate(
+                render_text(thread_label_template, thread_index=thread),
+                (position, value),
+                xytext=(5, 6),
+                textcoords="offset points",
+                color=THREAD_COLORS[thread],
+                fontsize=8.5,
+            )
+    extent = sections["disk_radius_m"] * np.linalg.norm(sections["disk_slopes"], axis=1)
+    for axis in axes:
+        for low, high in reference["disk_edges_m"]:
+            axis.axvspan(low * 1000, high * 1000, color="0.5", alpha=0.13, zorder=0)
+        for near, half_range in zip(sections["disk_nearface_z_m"], extent):
+            axis.axvspan(
+                (near - half_range) * 1000,
+                (near + 0.001 + half_range) * 1000,
+                facecolor=COLOR,
+                alpha=0.06,
+                edgecolor=COLOR,
+                ls=":",
+                lw=1,
+                zorder=0,
+            )
+        axis.set(xlim=(0, z[-1] * 1000), ylim=(0, None), ylabel=render_text(y_label))
+        axis.grid(alpha=0.15)
+        axis.legend(fontsize=8)
+    axes[0].set_title(render_text(effective_field_title))
+    axes[1].set_title(render_text(deconvolved_field_title))
+    axes[1].set_xlabel(render_text(x_label))
+    fig.suptitle(render_text(title_template, **context))
     return entry(
         fig,
-        "fields_full_reference_" + f"{f:.3f}".replace(".", "p"),
-        "Full-reference and spider model fields",
-        "Both series are model predictions of the unperturbed coherent transverse field integral, not raw finite-bead measurements. The full curve uses its saved 1D mean parameters; spider points integrate the fitted 3D field at horizontal midpoint sections with the saved common amplitude. Invalid full-aperture-in-air sections are omitted. No phase comparison is made because the global phase reference is unregistered. Aperture and absolute-calibration differences remain; a horizontal section is not a sloped sampling path.",
+        "fields_full_reference_" + f"{frequency_GHz:.3f}".replace(".", "p"),
+        "Full-reference and spider field integrals",
+        "Top: full-scan measured integrals, its saved finite-bead model, the 3D finite-bead integral, and the same rotational line reconstructions as the 1D workflow for T0–T3. These spider estimates are diagnostics, not 3D fit inputs, and are placed at the fitted thread midpoints. Bottom: model field integrals without the bead. The 3D curves integrate horizontal 150 mm-radius sections; missing sections intersect tilted disks or lack full bead clearance. Grey bands mark full-reference disks; pale magenta bands cover the tilted spider disks. Geometry and fitted scale are unchanged.",
     )
