@@ -1,50 +1,70 @@
 {
   "origin_repository": "https://github.com/nabil-2/spider-bead-pull-ai",
-  "scope": "Fresh full-tilt geometry fit with a disk-centred incident beam and measured curved disk faces; dense 401-bin reevaluation and conditional bootstrap.",
+  "scope": "Fresh all-17-parameter geometry fit with fixed first/last-five backgrounds and the same disk-radius signal cutoff for T0\u2013T3.",
   "files": {
     "data/3d/measurement_inputs.npz": {
-      "bytes": 1395563,
+      "bytes": 3466695,
       "historical_origin_sha256": "3411b3a05d0feb29528e6f26108dcc8cd98449c152ee20d82acd2b2b40a641c2",
       "historical_origin_path": "src-ai/three_d/inputs/measurement_inputs.npz",
-      "generated_by": "Current madmax-sbp code; outputs/3d_rerun/prepare.py, fit.py and export.py",
-      "sha256": "9b49017f6a19df812db1d7c2e571939d4d77a7043dc026b466799f786b3f8fb7"
+      "generated_by": "Current code; outputs/3d_fixed_endpoints/prepare.py, fit.py and export.py",
+      "sha256": "d7d225bb958918c7a1092dfb08b01632eca84028a1daa4bc85e6a57bc49443dc"
     },
     "data/3d/conditional_bands.npz": {
-      "bytes": 18813,
+      "bytes": 18982,
       "historical_origin_sha256": "ab9f9eae1ba5822ba6bb453451d399ee123cf008ffd2c0e0030c73b754962da6",
       "historical_origin_path": "src-ai/refit_7p803/tilted_threads/results/conditional_bands.npz",
-      "generated_by": "Current madmax-sbp code; outputs/3d_measured_surfaces/fit.py and export.py",
-      "sha256": "4d59a3b7c63039ae65095a522de9737f010b78e9301593eaf6247ea4191c47a5"
+      "generated_by": "Current code; outputs/3d_fixed_endpoints/prepare.py, fit.py and export.py",
+      "sha256": "fb4629c5de3b89ac893f66d2b3fd75d6fb1534bee09ee6fda92439c4940bf034"
     },
     "data/3d/field_maps.npz": {
-      "bytes": 1926146,
+      "bytes": 1314909,
       "historical_origin_sha256": "db6a6722fb9d9108842b3e1333ecd25c33cb685f550d0c752ce23b2908db752a",
       "historical_origin_path": "src-ai/refit_7p803/tilted_threads/results/field_maps.npz",
-      "generated_by": "Current madmax-sbp code; outputs/3d_measured_surfaces/fit.py and export.py",
-      "sha256": "7edaaa401aa1815f516d9e908f6672088de003ca6a4ff63003c8c9caed5002af"
+      "generated_by": "Current code; outputs/3d_fixed_endpoints/prepare.py, fit.py and export.py",
+      "sha256": "ffbff682fa4ae3ccb497ed8d3e63c553121f8a027982a3d306e904695340d7f8"
     },
     "data/3d/disk_tilts_threads.npz": {
-      "bytes": 9546343,
+      "bytes": 9080544,
       "historical_origin_sha256": "a56d5efd386a42c013db92fc580ed20415e964466d5d0678e8032124061ac4d0",
       "historical_origin_path": "src-ai/refit_7p803/tilted_threads/results/full401/disk_tilts_threads.npz",
-      "generated_by": "Current madmax-sbp code; outputs/3d_measured_surfaces/fit.py and export.py",
-      "sha256": "59124041ee72b53933533ad2354ff2db552c01358a6895abfcbcce04ad6583de"
+      "generated_by": "Current code; outputs/3d_fixed_endpoints/prepare.py, fit.py and export.py",
+      "sha256": "a6d2943eeea5f1343bd6147d748b022e2edce5244d3e59a0a3d28868a1a9a7cf"
     },
     "data/3d/beam_prior.npz": {
       "sha256": "4e1907cdbefd90b77cbfd5f21567daba05bad3bfa3e0c9954b3c2b1e5d2d6406",
       "bytes": 81042,
       "origin_path": "src-ai/three_d/measurements/omc/beam_prior.npz",
-      "generated_by": "Current madmax-sbp code; outputs/3d_rerun/prepare.py, fit.py and export.py"
+      "generated_by": "Current code; outputs/3d_fixed_endpoints/prepare.py, fit.py and export.py"
+    },
+    "data/3d/nominal_geometry/field_maps.npz": {
+      "sha256": "b51f7ed6b64c95fd014c6125e3c69aa3807bd45d8b392604af684a3143ef321e",
+      "bytes": 1207699,
+      "generated_by": "Current code; outputs/3d_fixed_endpoints/export.py"
+    },
+    "data/3d/nominal_geometry/disk_tilts_threads.npz": {
+      "sha256": "553fe3f783501c207a3ef3610a352e2625a874c00edbc0e5ec51e99bd23a3b48",
+      "bytes": 9089818,
+      "generated_by": "Current code; outputs/3d_fixed_endpoints/export.py"
+    },
+    "data/3d/nominal_geometry/disk_tilts_threads.json": {
+      "sha256": "276c98366a9647ad4596ff7825cfaf5a01d0257f97abe46e52480cd2a5fcfd8c",
+      "bytes": 10553,
+      "generated_by": "Current code; outputs/3d_fixed_endpoints/export.py"
+    },
+    "data/3d/nominal_geometry/field_maps.json": {
+      "sha256": "50b7990412a42331504f201a857d5282590c701f51cf358eb58fe81fa3ff0cc1",
+      "bytes": 994,
+      "generated_by": "Current code; outputs/3d_fixed_endpoints/export.py"
     }
   },
   "bank": {
     "origin_path": "src-ai/three_d/tilted_threads/results/bank_full401_l7",
     "local_path": "data/3d/bank",
-    "manifest_sha256": "06c07009cc5995e5586b33b040694e84b37c6b89a070e0baef6c951179565a70",
+    "manifest_sha256": "5682d6a4772fa24773790af075afbe489fd641dcdf1fd071a65141dd0f95f839",
     "BoostFractor_commit": "acf4f491fe633ab05c3b8abbafe6d6288e42aba0",
     "frequency_count": 35,
     "source_full_bank": "data/3d/bank_full401",
-    "derivation": "Select all 35 current raw-data quality frequencies from the verified 401-frequency bank."
+    "derivation": "Select endpoint-background profile-quality frequencies from the unchanged verified 401-bin operator bank."
   },
   "reflection_preprocessing": "none",
   "geometry_refitted": true,
@@ -67,28 +87,29 @@
     "beam_slice_parameters_bit_identical": true
   },
   "fit_details": {
-    "measured_disk_surfaces": true,
-    "disk_surface_sha256": "e3dcbdde83ae2d222d8b8ebae23ffb5feeaa4b428f8ddc1de43ad626baf26db0",
     "geometry_refitted": true,
     "reflection_preprocessing": "none",
     "incident_beam_alignment": "each_gaussian_centered_on_disk_axis",
+    "background_method": "fixed_first_last_five",
+    "aperture_treatment": "all_threads_disk_aperture",
     "success": true,
     "message": "Optimization terminated successfully",
     "status": 0,
-    "iterations": 57,
-    "function_evaluations": 58,
-    "gradient_evaluations": 57,
-    "initial_loss": 0.12500250525497023,
-    "final_loss": 0.11309550019289326,
-    "start_index": 0,
-    "start_name": "previous geometry; all coordinates reoptimized with centred beam and measured disk surfaces",
-    "node": "max-wn047.desy.de",
-    "elapsed_seconds": 718.9558507180773,
+    "iterations": 42,
+    "function_evaluations": 53,
+    "gradient_evaluations": 42,
+    "initial_loss": 0.13068476337695,
+    "final_loss": 0.1285239016892325,
+    "start_index": 2,
+    "start_name": "checkpoint from the superseded 48-bin attempt; fully reoptimized at the original 35 bins",
+    "node": "max-wn048.desy.de",
+    "elapsed_seconds": 569.2934032678604,
     "derivative": "Parallel two-point disk derivatives and cached serial thread derivatives; absolute step 1e-4.",
-    "median_gradient_seconds": 9.043016514508054,
-    "independent_start_count": 1,
-    "selected_start": "start_0",
-    "export_node": "max-wn047.desy.de",
+    "median_gradient_seconds": 9.0934704169631,
+    "independent_start_count": 3,
+    "converged_start_count": 3,
+    "selected_start": "start_2",
+    "export_node": "max-wn055.desy.de",
     "fit_frequency_count": 35,
     "export_frequency_count": 401
   },
@@ -118,5 +139,65 @@
     ],
     "height_departures": "near=-A, far=+B",
     "coordinate_registration": "Confirmed by user"
+  },
+  "background_method": "fixed_first_last_five",
+  "aperture_treatment": "all_threads_disk_aperture",
+  "uncertainty": "1000 residual block bootstrap draws; endpoint-only background re-estimated per draw; geometry and illumination fixed.",
+  "native_library_equivalence": "Not established for the custom tilted/curved-interface forward solver.",
+  "frequency_selection": {
+    "unchanged": true,
+    "count": 35,
+    "method": "Original raw-reflection Gaussian quality diagnostic; its nuisance affine terms are not the physical background.",
+    "validation": "Original mask, quality decisions, Gaussian parameters/coefficient diagnostics and ET diagnostics reproduced before refitting."
+  },
+  "background_reference_trace_indices_by_thread": {
+    "0": [
+      0,
+      1,
+      2,
+      3,
+      4,
+      78,
+      79,
+      80,
+      81,
+      82
+    ],
+    "1": [
+      83,
+      84,
+      85,
+      86,
+      87,
+      160,
+      161,
+      162,
+      163,
+      164
+    ],
+    "2": [
+      165,
+      166,
+      167,
+      168,
+      169,
+      243,
+      244,
+      245,
+      246,
+      247
+    ],
+    "3": [
+      248,
+      249,
+      250,
+      251,
+      252,
+      325,
+      326,
+      327,
+      328,
+      329
+    ]
   }
 }

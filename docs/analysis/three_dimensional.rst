@@ -5,7 +5,10 @@
 receive-coupled boost → conditional uncertainty.**
 
 For each trial geometry, a scalar wave model supplies the local inward and
-outward electric fields along the measured bead paths.
+outward electric fields along the measured bead paths. The current forward solver
+uses BoostFractor propagation operators with Python interface and field
+reconstruction code. Equivalence to the native library for the full tilted,
+measured-surface case has not been established.
 
 1. Select the measurement band
 ------------------------------
@@ -17,34 +20,55 @@ i on thread j. Retain frequencies in
 
    \mathcal F=\{\nu:20\leq\nu/\mathrm{GHz}\leq22\}.
 
-2. Select the geometry-fit frequencies
---------------------------------------
+2. Fix the endpoint background and select geometry-fit frequencies
+------------------------------------------------------------------
 
-For each thread, :math:`s` is the signed distance along the scan, measured
-from its recorded midpoint. Define the dimensionless position
-:math:`u=s/(0.1\,\mathrm m)`; its value at scan point i is
-:math:`u_i=s_i/(0.1\,\mathrm m)`. Preliminary fits to each measured chord use
+For each thread, sort the retained valid samples by their measured position.
+Let :math:`\mathcal R_j` contain exactly the first five and last five samples.
+These ten off-beam measurements alone determine the complex background:
 
 .. math::
 
-   \Gamma(u,\nu)=b_0+b_1u+A\exp\{[-2/w^2+i\eta](u-u_c)^2\}.
+   X_j=[\mathbf 1,\mathbf u_j],\qquad
+   u_{ji}=s_{ji}/(0.1\,\mathrm m),\qquad
+   b_{j\nu}=(X_j[\mathcal R_j])^+\Gamma_{j\nu}[\mathcal R_j].
 
-Here :math:`u_c` is the profile centre, :math:`w` its width parameter and
-:math:`\eta` the quadratic phase coefficient. The complex coefficients
-:math:`b_0,b_1` describe an affine background and :math:`A` the profile amplitude.
+The signed coordinate :math:`s` is measured from the recorded scan midpoint.
+The two complex coefficients are an offset and a slope. Interpolate the fitted
+straight line to every measured point, and subtract it:
 
-For each trial :math:`(u_c,w,\eta)`, solve :math:`(b_0,b_1,A)` by complex least
-squares, then optimize the real/imaginary residuals. Bounds are
-:math:`u_c\in[-1.1,1.1]`, :math:`w\in[0.2,2.2]`, :math:`\eta\in[-8,8]`.
-Accept a converged profile fit if no parameter is within
-:math:`10^{-3}` of its bounds, and :math:`\mathrm{RMS}(\Gamma-\widehat\Gamma)/|A|<0.20`.
+.. math::
 
-Define :math:`\mathcal F_{\mathrm{fit}}\subseteq\mathcal F` as the frequencies
-whose profile fits are accepted on all three interior threads **T1–T3**.
-T0's profile quality does not enter this frequency-selection rule.
-At every selected frequency, the geometry-fit objective in Step 6 includes
-the measured complex reflection from **all four threads, T0–T3**. Thus T0
-constrains the geometry even when its preliminary profile fit is rejected.
+   \Gamma_{\mathrm{bg},j\nu}=X_jb_{j\nu},\qquad
+   \Delta\Gamma_{j\nu}=\Gamma_{j\nu}-\Gamma_{\mathrm{bg},j\nu}.
+
+Hold this background fixed for every subsequent profile and geometry fit.
+No illuminated measurement, predicted field or model residual enters its
+estimation. Retain the measured residual noise at the reference points.
+
+Frequency selection retains the original, separate Gaussian diagnostic on the
+raw reflection:
+
+.. math::
+
+   \Gamma(u,\nu)\approx q_0+q_1u+
+       A\exp\{[-2/w^2+i\eta](u-u_c)^2\}.
+
+For each trial centre :math:`u_c`, width :math:`w` and curvature :math:`\eta`,
+solve the complex diagnostic coefficients :math:`q_0,q_1,A` by least squares.
+These nuisance terms are used only to score profile quality; they are **not**
+the physical background, are never subtracted from the geometry-fit data and
+do not replace the endpoint-only background above.
+Bounds remain :math:`u_c\in[-1.1,1.1]`, :math:`w\in[0.2,2.2]`,
+:math:`\eta\in[-8,8]`. Accept a converged profile fit if no parameter is within
+:math:`10^{-3}` of its bounds and the residual RMS divided by :math:`|A|`
+is below 0.20.
+
+The geometry-fit frequencies remain those accepted on all three interior
+threads **T1–T3**. T0 quality does not select frequencies, but measurements
+from **all four threads** enter the geometry fit at every selected frequency.
+The original 35-bin frequency selection is retained. It is calculated
+independently of the fixed endpoint background used in the physical fit.
 
 3. Supply the independent incident beam
 ---------------------------------------
@@ -163,87 +187,44 @@ conventions; :math:`\epsilon_0` is explicit because this :math:`\alpha_0`
 has units of volume. Step 6 fits the common complex scale and adds the affine
 backgrounds to compare with measured S22.
 
-6. Fit the geometry, backgrounds and common complex scale
----------------------------------------------------------
+Apply the same disk-radius signal aperture to **all four threads**, including
+T0: the simulated bead-induced response is zero for
+:math:`x_{ji}^2+y_{ji}^2>R^2`, with :math:`R=150\,\mathrm{mm}`.
+The propagation inside this aperture remains appropriate to each thread's
+location. This is a modelling assumption; physical exterior fields may exist.
+All retained measured points, including those outside the aperture, remain in
+the least-squares objective. Only the ten designated endpoint samples enter
+the background estimate.
+The horizontal electric-field and predicted-reflection maps show this same
+circular aperture for T0–T3.
 
-At a fixed trial geometry and frequency :math:`\nu`, collect each thread's
-:math:`n_j` measured values and simulated bead responses from Step 5 into
-vectors :math:`\Gamma_{j\nu},t_{j\nu}\in\mathbb C^{n_j}`. The same scalar
-positions :math:`u_{ji}` as in Step 2 form the vector :math:`\mathbf u_j`
-and the :math:`n_j\times2` background matrix
+6. Fit the geometry and common complex scale
+---------------------------------------------
 
-.. math::
-
-   X_j=[\mathbf1,\mathbf u_j]
-      =\begin{pmatrix}
-         1 & u_{j1}\\
-         \vdots & \vdots\\
-         1 & u_{jn_j}
-       \end{pmatrix},\qquad
-   b_{j\nu}=\begin{pmatrix}b_{0,j\nu}\\b_{1,j\nu}\end{pmatrix}.
-
-Thus :math:`X_jb_{j\nu}` is a constant plus a linear trend along the thread.
-Fit this background and one common complex scale :math:`c_\nu` by minimizing
+At a fixed trial geometry and frequency, let :math:`t_{j\nu}` be the predicted
+bead-induced reflection from Step 5. Use the fixed background-subtracted data
+:math:`\Delta\Gamma_{j\nu}` from Step 2. Fit one complex response scale shared
+by T0–T3:
 
 .. math::
 
-   S_\nu(c_\nu,\{b_{j\nu}\})
-      =\sum_j\|\Gamma_{j\nu}-c_\nu t_{j\nu}-X_jb_{j\nu}\|^2.
+   c_\nu=\frac{\sum_j t_{j\nu}^{\dagger}\Delta\Gamma_{j\nu}}
+                  {\sum_j\|t_{j\nu}\|^2},\qquad
+   \widehat\Gamma_{j\nu}=\Gamma_{\mathrm{bg},j\nu}+c_\nu t_{j\nu}.
 
-All sums over j include **T0–T3**. For fixed :math:`c_\nu`, linear least
-squares gives
-
-.. math::
-
-   b_{j\nu}=X_j^+(\Gamma_{j\nu}-c_\nu t_{j\nu}),\qquad
-   P_j=I-X_jX_j^+,
-
-where + denotes the pseudoinverse and :math:`I` the :math:`n_j\times n_j`
-identity matrix. The projection :math:`P_j` removes the best-fitting affine
-background, leaving the reduced objective
+Here :math:`\dagger` denotes conjugate transpose. The background is already
+fixed; it is never adjusted to improve agreement with a trial geometry.
+All retained samples enter the normalized residual:
 
 .. math::
 
-   S_\nu(c_\nu)=\sum_j\|P_j\Gamma_{j\nu}-c_\nu P_jt_{j\nu}\|^2.
-
-Minimizing with respect to the complex scale gives the normal equation and
-its solution:
-
-.. math::
-
-   \sum_j(P_jt_{j\nu})^\dagger
-      (P_j\Gamma_{j\nu}-c_\nu P_jt_{j\nu})=0,
-
-.. math::
-
-   c_\nu=\frac{\sum_j(P_jt_{j\nu})^\dagger(P_j\Gamma_{j\nu})}
-                  {\sum_j\|P_jt_{j\nu}\|^2}.
-
-Here :math:`\dagger` denotes the conjugate transpose. Substituting this scale
-into the background solution gives the fitted response and the
-baseline-subtracted signal:
-
-.. math::
-
-   \widehat\Gamma_{j\nu}=c_\nu t_{j\nu}+X_jb_{j\nu},\qquad
-   \Delta\Gamma_{j\nu}=\Gamma_{j\nu}-X_jb_{j\nu},\qquad
-   \widehat{\Delta\Gamma}_{j\nu}=c_\nu t_{j\nu}.
-
-For every trial geometry, use these analytical solutions for the scale and
-backgrounds. Choose the geometry by minimizing the normalized residual
-averaged over the selected frequencies:
-
-.. math::
-
-   r_{\nu}^2=\frac{\sum_j\|c_{\nu}P_jt_{j\nu}-P_j\Gamma_{j\nu}\|^2}
-                    {\sum_j\|P_j\Gamma_{j\nu}\|^2}
-      =\frac{\sum_j\|\widehat\Gamma_{j\nu}-\Gamma_{j\nu}\|^2}
-             {\sum_j\|P_j\Gamma_{j\nu}\|^2},\qquad
+   r_\nu^2=\frac{\sum_j\|c_\nu t_{j\nu}-\Delta\Gamma_{j\nu}\|^2}
+                    {\sum_j\|\Delta\Gamma_{j\nu}\|^2},\qquad
    \mathcal L=\frac1{|\mathcal F_{\mathrm{fit}}|}
-                     \sum_{\nu\in\mathcal F_{\mathrm{fit}}}r_{\nu}^2.
+                     \sum_{\nu\in\mathcal F_{\mathrm{fit}}}r_\nu^2.
 
-Frequencies have equal normalized weight; samples within a frequency have
-equal absolute weight. Individual-thread residuals use the same :math:`c_\nu`.
+Frequencies have equal normalized weight; samples within a frequency have equal
+absolute weight. Individual-thread residuals use the same :math:`c_\nu`.
 
 Minimize :math:`\mathcal L` subject to the following bounds and clearance
 constraints. Reference-plane gap changes are bounded by ±2 mm, rigid slope
@@ -276,19 +257,28 @@ The corresponding finite-bead field proxy is :math:`\sqrt{|c_{\nu}Q|}`.
 8. Form conditional uncertainty bands
 -------------------------------------
 
-Hold geometry, measured surface shapes, beam, materials and calibration fixed. Demean the complex
-residuals :math:`e_j=\Gamma_j-\widehat\Gamma_j` per thread/frequency and resample circular
-blocks of eight adjacent chord samples. The same sampled indices are used
-across frequencies. Each draw updates only the common scale:
+Hold geometry, measured surface shapes, beam, materials and calibration fixed.
+Demean the complex residuals per thread/frequency and resample circular blocks
+of eight adjacent chord samples. Use the same sampled indices across
+frequencies. For each of 1,000 draws, re-estimate the background using only the
+same first/last-five reference points, then update the common response scale.
+
+Equivalently, for resampled residual :math:`e_j^{(b)}`, remove the baseline
+perturbation inferred exclusively from the reference points:
 
 .. math::
 
-   c_{\nu}^{(b)}=c_{\nu}+
-      \frac{\sum_j(P_jt_{j\nu})^\dagger e_{j\nu}^{(b)}}
-           {\sum_j\|P_jt_{j\nu}\|^2},\qquad
-   \beta^{2(b)}_{\nu}=|c_{\nu}^{(b)}|\,\beta^2_{\mathrm{recv},g,\nu}.
+   \delta d_j^{(b)}=e_j^{(b)}
+      -X_j(X_j[\mathcal R_j])^+e_j^{(b)}[\mathcal R_j],
 
-Repeat for 1,000 draws and take pointwise quantiles of
-:math:`\beta^{2(b)}_\nu`; the reported interval is 16–84%.
-These conditional intervals exclude uncertainty in geometry, measured surface shapes, beam, materials,
-absolute calibration and model discrepancy.
+.. math::
+
+   c_\nu^{(b)}=c_\nu+
+      \frac{\sum_j t_{j\nu}^{\dagger}\delta d_{j\nu}^{(b)}}
+           {\sum_j\|t_{j\nu}\|^2},\qquad
+   \beta^{2(b)}_\nu=|c_\nu^{(b)}|\,\beta^2_{\mathrm{recv},g,\nu}.
+
+Take pointwise quantiles of :math:`\beta^{2(b)}_\nu`; the reported interval is
+16–84%. These conditional intervals include residual-induced variation of the
+endpoint background and response scale. They exclude uncertainty in geometry,
+measured surface shapes, beam, materials, absolute calibration and model assumptions.

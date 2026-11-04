@@ -319,7 +319,7 @@ in parallel and eight Julia threads per case. Its local run manifest is
 
 ## 3D analysis with disk and thread tilts
 
-Open [sbp_3d_analysis.ipynb](sbp_3d_analysis.ipynb). Its **27 rendered plots** include
+Open [sbp_3d_analysis.ipynb](sbp_3d_analysis.ipynb). Its **29 rendered plots** include
 boost curves, raw measurement spectra and dB traces, the actual incident-beam profile,
 frequency-selection diagnostics, complex chord fits and backgrounds, field
 spectra/maps, nominal/fitted geometry, spatial residuals and the full-pull
@@ -329,9 +329,12 @@ execution; large measurements, banks and plot exports remain excluded from Git.
 
 The likelihood uses measured **complex S22 samples directly**, at their actual
 recorded x/y and fitted z. It fits three disk shifts, two slopes per disk and two
-endpoint heights per straight thread: **17 shared geometry parameters**. Per
-frequency it solves analytically for a common complex response coefficient and
-per-thread complex affine backgrounds. Boost follows from the model's receive
+endpoint heights per straight thread: **17 shared geometry parameters**. Each
+thread's complex linear background is fitted only to its first and last
+five valid points and held fixed. Per frequency the geometry fit solves only
+for one common complex response coefficient. The original Gaussian quality
+diagnostic and 35-bin frequency selection remain unchanged; their nuisance
+offset/slope are never used as the physical background. Boost follows from the model's receive
 coupling multiplied by the magnitude of that coefficient. It is not fitted as
 an independent spectral curve.
 
@@ -341,7 +344,7 @@ an independent spectral curve.
   scattering interfaces, using the original BoostFractor matrix-bank format.
 - `src/disk_surfaces.py`, `src/surface_moments.py`: measured face geometry,
   continuous curved-face clearance bounds and reusable spatial phase integrals.
-- `src/exterior_field.py`: variable-height angular-spectrum continuation for T0.
+- `src/exterior_field.py`: variable-height angular-spectrum continuation for T0, sampled within the common disk aperture.
 - `src/bead_response.py`: the original finite-sphere Mie response.
 - `src/analysis_3d.py`: physical scan chords, fit constraints, variable projection,
   SLSQP fitting and saved result arrays.
@@ -379,6 +382,13 @@ The notebook has optional cells to prepare inputs, run a new single-start fit,
 and export results. These switches default to off; loading a notebook does not
 start an optimization. No additive endpoint-template correction is applied.
 Old corrected inputs are rejected by the measurement loader.
+
+All four threads use the same 150 mm-radius signal aperture. Outside it, the
+predicted bead-induced reflection is zero. All retained measured points still
+enter the fit, with a fixed background obtained only from five valid points at each end.
+The horizontal field and predicted-reflection maps use the same circular mask
+for T0–T3. This cutoff is a modelling assumption, not evidence of zero exterior
+physical field.
 
 The local spectra, backgrounds, conditional bands and field maps use a fresh
 fit of all 17 geometry parameters to measured S22, without additive template

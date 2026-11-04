@@ -45,7 +45,8 @@ Full bead pull vs 3D
 The spider curves use measured S22 without the former additive template
 correction. All 17 geometry parameters have been reoptimized against measured
 S22 with the measured curved disk faces; the spectra, field amplitudes and
-conditional bands use that fresh fit.
+conditional bands use that fresh fit. Backgrounds are fixed from the first
+and last five valid points per thread; T0–T3 share the 150 mm signal aperture.
 
 .. Exported by sbp_3d_analysis.ipynb from
    plots/3d/full_tilt/full_bead_comparison/fields_full_reference_20p825.png

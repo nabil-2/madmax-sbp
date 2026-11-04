@@ -10,7 +10,8 @@ from matplotlib.patches import Circle, Polygon, Patch
 from matplotlib.lines import Line2D
 from matplotlib.ticker import MaxNLocator
 from .receive_field import NOM_DISKS_MM
-from .analysis_3d import NOM_Z_MM
+from .analysis_3d import NOM_Z_MM, APERTURE_TREATMENT
+from .analysis_3d_inputs import BACKGROUND_METHOD
 from .disk_surfaces import DiskSurfaces
 from .plot_text import render_text, display_figure, save_figure, THREAD_COLORS
 
@@ -25,7 +26,7 @@ FREQUENCIES = (20.795, 20.825)
 RADIUS_MM = 150.0
 SCOPE = "all four complex S22 chords, T0–T3"
 SCOPE_DESCRIPTION = "All four measured chords enter the common-scale fit. The horizontal sections are illustrative; the likelihood uses each point on its actual sloping path."
-UNCERTAINTY = "Shading is the conditional pointwise 16–84% residual-bootstrap spread, with geometry and incident beam fixed; it excludes geometry, calibration, material, beam and model uncertainties."
+UNCERTAINTY = "Shading is the conditional pointwise 16–84% residual-bootstrap spread, with geometry and incident beam fixed and endpoint-only backgrounds re-estimated per draw; it excludes geometry, calibration, material, beam and model uncertainties."
 
 
 def load(path):
@@ -39,6 +40,13 @@ def load(path):
         raise ValueError(
             "Saved 3D results use the removed template correction; regenerate results from measured S22."
         )
+    if "template_S22" in result and (
+        str(result.get("background_method", "")) != BACKGROUND_METHOD
+        or str(result.get("aperture_treatment", "")) != APERTURE_TREATMENT
+    ):
+        raise ValueError("Regenerate the 3D result with fixed first/last-five backgrounds and the common disk aperture.")
+    if "unperturbed_magnitude_V_per_m" in result and str(result.get("aperture_treatment", "")) != APERTURE_TREATMENT:
+        raise ValueError("Regenerate the field maps: all four threads must use the common disk aperture.")
     return result
 
 
@@ -314,6 +322,7 @@ def geometry_figures(
     projection_title_template="{coordinate}–z projection",
     disk_shifts_title="Shifts from corrected nominal",
     disk_slopes_title="Rigid disk slopes",
+    view_geometry="fitted",
     view_title="Fitted disk surfaces and all four straight paths",
     z_label="Distance from mirror z [mm]",
     transverse_label_template="{coordinate} [mm]",
@@ -711,6 +720,16 @@ def geometry_figures(
             "Projected line–disk intersections do not establish physical overlap: the chord can have a nonzero other transverse coordinate. Both axial and transverse scales are deliberately different. "
             "The saved clearance is a conservative bound to measured curved faces plus fitted rigid tilts along the continuous chord, extended at the finite rim. The nominal reference-plane separation is 1 mm; the two measured faces set local thickness.",
         )
+    if view_geometry == "nominal":
+        view_faces = np.asarray(record.get("nominal_disk_nearface_z_mm", NOMINAL_DISKS))
+        view_slopes = np.asarray(record.get("nominal_disk_slopes_mrad", np.zeros((3, 2))))
+        view_endpoints = np.repeat(
+            np.asarray(record.get("nominal_thread_z_mm", NOMINAL_THREADS))[:, None], 2, axis=1
+        )
+    elif view_geometry == "fitted":
+        view_faces, view_slopes, view_endpoints = faces, slopes, endpoint
+    else:
+        raise ValueError("view_geometry must be 'nominal' or 'fitted'")
     fig = plt.figure(figsize=(9.4, 5.6), layout="constrained")
     ax = fig.add_subplot(111, projection="3d")
     radial = np.linspace(0, RADIUS_MM, 16)
@@ -720,7 +739,7 @@ def geometry_figures(
         xx, yy, np.zeros_like(xx), color="#89949E", alpha=0.22, linewidth=0, shade=False
     )
     for j in range(3):
-        zz = faces[j] + (slopes[j, 0] * xx + slopes[j, 1] * yy) / 1000
+        zz = view_faces[j] + (view_slopes[j, 0] * xx + view_slopes[j, 1] * yy) / 1000
         xy_surface = np.stack((xx / 1000, yy / 1000), axis=-1)
         near = zz if surfaces is None else zz + 1000 * surfaces.evaluate(j, 0, xy_surface)
         far = zz + 1 if surfaces is None else zz + 1 + 1000 * surfaces.evaluate(j, 1, xy_surface)
@@ -731,12 +750,12 @@ def geometry_figures(
         ax.plot(
             xy[t, :, 0],
             xy[t, :, 1],
-            endpoint[t],
+            view_endpoints[t],
             color=THREAD_COLORS[t],
             lw=2,
             label=render_text(thread_label_template, thread_index=t),
         )
-        ax.scatter(xy[t, :, 0], xy[t, :, 1], endpoint[t], color=THREAD_COLORS[t], s=15)
+        ax.scatter(xy[t, :, 0], xy[t, :, 1], view_endpoints[t], color=THREAD_COLORS[t], s=15)
     ax.set(
         xlim=(-210, 210),
         xticks=(-200, 0, 200),
@@ -766,10 +785,10 @@ def geometry_figures(
     third = entry(
         fig,
         "geometry_3d",
-        "Oblique view of the fitted disk surfaces and paths",
-        "This perspective view keeps y upright, z running left to right and x receding into the scene. Axial distances are strongly exaggerated relative to transverse distances so the fitted slopes and endpoint heights can be seen. "
-        "Translucent surfaces show measured near faces plus fitted rigid tilts; paired rim curves show the measured far faces. The grey plane is the mirror. "
-        "Coloured straight segments connect the actual retained x/y endpoints at their fitted z coordinates. These recorded segment endpoints are not measured support anchors.",
+        f"Oblique view of the {view_geometry} disk surfaces and paths",
+        "This perspective view keeps y upright, z running left to right and x receding into the scene. Axial distances are strongly exaggerated relative to transverse distances so disk slopes and thread heights can be seen. "
+        f"Translucent surfaces show measured near faces plus {view_geometry} rigid tilts; paired rim curves show the measured far faces. The grey plane is the mirror. "
+        f"Coloured straight segments connect the actual retained x/y endpoints at their {view_geometry} z coordinates. These recorded segment endpoints are not measured support anchors.",
     )
     return (
         [first, second, adjustments, third]
@@ -789,7 +808,7 @@ def delta_gamma_maps(maps):
     return factor * maps["field_proxy_V_per_m"] ** 2
 
 
-def field_map_vmax(maps, *, observable="electric_field"):
+def field_map_vmax(maps, *, observable="electric_field", frequencies_GHz=None):
     """Largest displayed value across selected frequencies and four threads."""
     if observable not in ("electric_field", "delta_gamma"):
         raise ValueError("Choose electric_field or delta_gamma for horizontal sections.")
@@ -799,10 +818,11 @@ def field_map_vmax(maps, *, observable="electric_field"):
     )
     field = delta_gamma_maps(maps) if observable == "delta_gamma" else maps[field_key]
     window = (abs(maps["x_m"][:, None]) <= 0.205) & (abs(maps["y_m"][None, :]) <= 0.205)
+    frequencies = FREQUENCIES if frequencies_GHz is None else tuple(frequencies_GHz)
     return max(
         float(np.nanmax(np.where(maps["support"][at_frequency(maps, f)],
                                  field[at_frequency(maps, f)], np.nan)[:, window]))
-        for f in FREQUENCIES
+        for f in frequencies
     )
 
 
@@ -819,10 +839,14 @@ def field_map_figures(
     held_out_label=" · held out",
     vmax=None,
     observable="electric_field",
+    cmap=None,
+    frequencies_GHz=None,
 ):
     if observable not in ("electric_field", "delta_gamma"):
         raise ValueError("Choose electric_field or delta_gamma for horizontal sections.")
     reflection = observable == "delta_gamma"
+    frequencies = FREQUENCIES if frequencies_GHz is None else tuple(frequencies_GHz)
+    cmap = ("magma" if reflection else "viridis") if cmap is None else cmap
     x, y = maps["x_m"] * 1000, maps["y_m"] * 1000
     z = maps.get("thread_midpoint_z_mm", maps.get("thread_z_mm"))
     np.testing.assert_allclose(
@@ -851,11 +875,11 @@ def field_map_figures(
     field = delta_gamma_maps(maps) if reflection else maps[field_key]
     if field.shape != maps["support"].shape or field.shape[1] != 4:
         raise ValueError("Maps must contain all four thread midpoint planes")
-    vmax = field_map_vmax(maps, observable=observable) if vmax is None else float(vmax)
+    vmax = field_map_vmax(maps, observable=observable, frequencies_GHz=frequencies) if vmax is None else float(vmax)
     if not np.isfinite(vmax) or vmax <= 0:
         raise ValueError("The field colour-scale maximum must be positive and finite.")
     entries = []
-    for f in FREQUENCIES:
+    for f in frequencies:
         k = at_frequency(maps, f)
         fig, axs = plt.subplots(
             2, 2, figsize=(6.5, 6.4), layout="constrained", sharex=True, sharey=True
@@ -867,7 +891,7 @@ def field_map_figures(
                 y,
                 plane.T,
                 shading="auto",
-                cmap="viridis",
+                cmap=cmap,
                 vmin=0,
                 vmax=vmax,
                 rasterized=True,
@@ -908,7 +932,7 @@ def field_map_figures(
                 "transverse_delta_gamma_" + f"{f:.3f}".replace(".", "p"),
                 f"Predicted reflection-change magnitude · {f:.3f} GHz",
                 "Colours show the dimensionless magnitude of the predicted bead-induced complex reflection change. "
-                "The finite-bead directional-wave response and common complex response scale are the same as in the 3D fit at this geometry; affine backgrounds are excluded. "
+                "The finite-bead directional-wave response and common complex response scale are the same as in the 3D fit at this geometry; fixed endpoint-derived backgrounds are excluded. "
                 "All four horizontal thread-midpoint sections share one colour scale and retain the field plot's aperture/clearance mask, path overlays and disk-radius circles.",
             )
             figure.update(

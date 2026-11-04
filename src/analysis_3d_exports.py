@@ -3,18 +3,18 @@
 from pathlib import Path
 import json
 import numpy as np
-from .analysis_3d import NOM_Z_MM, EndpointFitProblem, save_result
+from .analysis_3d import NOM_Z_MM, APERTURE_TREATMENT, EndpointFitProblem, save_result
 from .receive_field import NOM_DISKS_MM
-from .analysis_3d_inputs import load_measurement
+from .analysis_3d_inputs import BACKGROUND_METHOD, load_measurement
 
 Q = np.array([0.025, 0.16, 0.5, 0.84, 0.975])
 
 
 def reprofile_saved_geometry(saved, measurement_path):
-    """Use measured S22 with saved physical response templates, without a refit.
+    """Use measured S22 with saved templates and a fixed endpoint background.
 
-    Recompute the common complex scale, affine backgrounds and dependent result
-    arrays. Geometry, directional waves and geometry-only boost stay fixed. The
+    Recompute the common complex scale and dependent arrays. The background
+    comes only from the first/last five valid samples; it is not model-fitted. Geometry, directional waves and geometry-only boost stay fixed. The
     historical geometry-fit mask is kept separately from current profile quality.
     """
     measurement = load_measurement(measurement_path)
@@ -38,42 +38,25 @@ def reprofile_saved_geometry(saved, measurement_path):
     if np.any(measurement["transient_trace_mask"][rows]):
         raise ValueError("Saved templates include excluded transition samples.")
     observed = measurement["observed_S22"][rows][:, indices].T
-    projected = np.empty_like(observed)
-    templates = np.empty_like(observed)
-    designs = []
-    for thread in range(4):
-        take = saved["thread_index"] == thread
-        X = np.column_stack([np.ones(take.sum()), saved["signed_line_m"][take] / 0.1])
-        inverse = np.linalg.pinv(X)
-        projection = np.eye(take.sum()) - X @ inverse
-        projected[:, take] = observed[:, take] @ projection
-        templates[:, take] = saved["template_S22"][:, take] @ projection
-        designs.append((take, X, inverse))
+    background = measurement["fixed_background_S22"][rows][:, indices].T
+    projected = observed - background
+    templates = saved["template_S22"]
     coefficient = np.sum(templates.conj() * projected, axis=1) / np.sum(
         abs(templates) ** 2, axis=1
     )
     projected_error = coefficient[:, None] * templates - projected
-    background = np.empty_like(observed)
     rms, relative, energy = [], [], []
-    for take, X, inverse in designs:
-        error = (
-            observed[:, take] - coefficient[:, None] * saved["template_S22"][:, take]
-        )
-        background[:, take] = error @ inverse.T @ X.T
-        residual = error - background[:, take]
+    for thread in range(4):
+        take = saved["thread_index"] == thread
+        residual = projected_error[:, take]
         rms.append(np.sqrt(np.mean(abs(residual) ** 2, axis=1)))
-        relative.append(
-            np.linalg.norm(residual, axis=1)
-            / np.linalg.norm(projected[:, take], axis=1)
-        )
+        relative.append(np.linalg.norm(residual, axis=1) / np.linalg.norm(projected[:, take], axis=1))
         energy.append(np.sum(abs(projected[:, take]) ** 2, axis=1))
     interior = saved["thread_index"] != 0
     ip, iy = templates[:, interior], projected[:, interior]
     interior_coefficient = np.sum(ip.conj() * iy, axis=1) / np.sum(abs(ip) ** 2, axis=1)
     energy = np.asarray(energy).T
-    relative_all = np.linalg.norm(projected_error, axis=1) / np.linalg.norm(
-        projected, axis=1
-    )
+    relative_all = np.linalg.norm(projected_error, axis=1) / np.linalg.norm(projected, axis=1)
     result = dict(saved)
     result.update(
         reflection_preprocessing="none",
@@ -82,7 +65,9 @@ def reprofile_saved_geometry(saved, measurement_path):
             "geometry_fit_reflection_preprocessing", "additive_template"
         ),
         geometry_fit_mask=saved.get("geometry_fit_mask", saved["eligible"]),
-        evaluation_method="Common scale and affine backgrounds refitted to measured S22 at saved geometry.",
+        evaluation_method="Common scale fitted to measured S22 minus fixed first/last-five background at saved geometry.",
+        background_method=BACKGROUND_METHOD,
+        background_reference_mask=measurement["background_reference_mask"][rows],
         eligible=measurement["shared_fit_mask"][indices],
         observed_S22=observed,
         fitted_background=background,
@@ -110,17 +95,23 @@ def reprofile_saved_geometry(saved, measurement_path):
 
 
 def conditional_bands(a, fit_threads, draws=1000):
-    """Exact conditional common-scale update, using only fitted threads."""
+    """Residual block bootstrap with fixed geometry and endpoint-only baselines.
+
+    Each draw re-estimates its baseline only from the same ten end samples.
+    Only those reference indices enter each baseline re-estimate.
+    """
     rng = np.random.default_rng(20261025)
     projections = []
+    reference_operators = []
     residuals = []
     indices = []
     for t in fit_threads:
         mask = a["thread_index"] == t
         u = a["signed_line_m"][mask] / 0.1
         X = np.column_stack([np.ones(len(u)), u])
-        P = np.eye(len(u)) - X @ np.linalg.pinv(X)
-        projections.append(a["template_S22"][:, mask] @ P)
+        reference = a["background_reference_mask"][mask]
+        reference_operators.append((reference, X @ np.linalg.pinv(X[reference])))
+        projections.append(a["template_S22"][:, mask])
         residual = a["observed_S22"][:, mask] - a["predicted_S22"][:, mask]
         residuals.append(residual - residual.mean(axis=1, keepdims=True))
         start = rng.integers(0, len(u), (draws, int(np.ceil(len(u) / 8))))
@@ -135,9 +126,10 @@ def conditional_bands(a, fit_threads, draws=1000):
     delta = np.zeros((draws, len(a["frequency_hz"])), complex)
     for f in range(len(a["frequency_hz"])):
         for t in range(len(fit_threads)):
-            delta[:, f] += (
-                residuals[t][f][indices[t]] @ projections[t][f].conj() / denominator[f]
-            )
+            sampled = residuals[t][f][indices[t]]
+            reference, interpolation = reference_operators[t]
+            sampled = sampled - sampled[:, reference] @ interpolation.T
+            delta[:, f] += sampled @ projections[t][f].conj() / denominator[f]
     beta = (
         abs(a["quadratic_scale"][None, :] + delta)
         * a["beta2_received_geometry_only"][None, :]
@@ -151,8 +143,8 @@ def nominal_midpoint_maps(
     """Export fields at measured nominal geometry; fit no geometry parameters.
 
     Keep the measured disk faces and illumination. Determine the common complex
-    response scale and affine backgrounds from the spider data at this geometry,
-    using the same analytic profiling as the fitted-geometry calculation.
+    response scale from the endpoint-background-subtracted spider data, using
+    the same analytic scale fit as the fitted-geometry calculation.
     """
     parameters = np.zeros(17)
     parameters[:3] = np.asarray(geometry["nominal_disk_nearface_z_mm"]) - NOM_DISKS_MM
@@ -165,7 +157,7 @@ def nominal_midpoint_maps(
         raise ValueError("Nominal geometry violates the disk/thread clearance constraints.")
     record, arrays = save_result(
         problem, parameters, folder,
-        {"operation": "Fixed nominal geometry; common response scale and affine backgrounds profiled from spider data.",
+        {"operation": "Fixed nominal geometry; common scale fitted after fixed first/last-five background subtraction.",
          "geometry_refitted": False},
     )
     midpoint_maps(problem, parameters, folder, frequencies_hz=frequencies_hz)
@@ -219,7 +211,7 @@ def midpoint_maps(p, q, folder, frequencies_hz=(20.795e9, 20.825e9, 21e9)):
                 outgoing = np.fft.ifft2(np.fft.fft2(outgoing) * np.exp(-1j * kz * d))
                 waves = m.scale * np.stack([incoming, outgoing], axis=-1)
                 clearance = (z - faces[2, 1]) / factors[2, 1]
-                ok = (xx**2 + yy**2 > (m.radius + rb) ** 2) | (clearance >= rb)
+                ok = aperture & (clearance >= rb)
             else:
                 high = 3 - t
                 low = high - 1
@@ -280,6 +272,7 @@ def midpoint_maps(p, q, folder, frequencies_hz=(20.795e9, 20.825e9, 21e9)):
         disk_slopes=slopes,
         disk_nearface_z_m=disks,
         measured_disk_surfaces=True,
+        aperture_treatment=APERTURE_TREATMENT,
         disk_surface_sha256=m.surfaces.fingerprint,
         disk_face_z_m=faces,
         disk_face_z_bounds_m=face_bounds,
@@ -291,7 +284,8 @@ def midpoint_maps(p, q, folder, frequencies_hz=(20.795e9, 20.825e9, 21e9)):
     )
     meta = {
         "scope": "Illustrative horizontal sections at each straight thread midpoint z. Sloped-thread likelihood/chord profiles use point-specific z, not these sections.",
-        "support": "Interior disk aperture and full bead clearance from the measured curved faces plus fitted rigid tilts, using face-gradient bounds; exterior points in the expanded footprint require bead clearance. Conservative at finite disk rims.",
+        "support": "All four threads use the disk aperture and full bead clearance from measured curved faces plus rigid tilts, with conservative face-gradient bounds. Outside-aperture measured points remain in the fit with zero bead-induced signal and the fixed endpoint-derived background.",
+        "aperture_treatment": APERTURE_TREATMENT,
         "coherent_integral": "Unperturbed complex transverse integral at the illustrative horizontal section; valid only when the entire disk aperture lies in air. It is not a measurement integral along a sloped path.",
         "reference_thread_z_mm_T0_T1_T2_T3": NOM_Z_MM.tolist(),
         "actual_thread_midpoint_z_mm": (midpoint * 1000).tolist(),

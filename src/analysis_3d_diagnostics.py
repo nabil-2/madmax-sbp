@@ -115,7 +115,7 @@ def profile_quality_figure(
         figure,
         "profile_quality",
         "Frequency selection",
-        "Saved preliminary Gaussian line fits are diagnostics only. Acceptance on T1–T3 selects geometry-fit frequencies; T0 quality does not select frequencies, but T0 still enters the 3D fit at those frequencies.",
+        "Original preliminary Gaussian line fits are quality diagnostics only; their offset/slope never supplies the fixed endpoint background. Acceptance on T1–T3 selects geometry-fit frequencies; T0 quality does not select frequencies, but T0 still enters the 3D fit at those frequencies.",
     )
 
 
@@ -130,7 +130,8 @@ def raw_fit_figure(
     thread_label_template="T{thread_index}",
     measured_label="Measured",
     model_label="Fitted model",
-    background_label="Fitted background",
+    background_label="Endpoint background",
+    reference_label="Background reference",
 ):
     k = at_frequency(result, frequency_GHz)
     figure, axes = plt.subplots(
@@ -162,6 +163,12 @@ def raw_fit_figure(
                 color="#77838b",
                 label=render_text(background_label),
             )
+            reference = result["background_reference_mask"][ids]
+            axis.scatter(
+                x[reference], component(result["observed_S22"][k, ids][reference]),
+                s=25, marker="s", facecolors="none", edgecolors="#228877",
+                label=render_text(reference_label), zorder=4,
+            )
             axis.set(
                 ylabel=render_text(real_y_label if column == 0 else imaginary_y_label),
                 title=render_text(thread_label_template, thread_index=thread),
@@ -174,7 +181,7 @@ def raw_fit_figure(
         figure,
         "raw_reflection_fit",
         "Reflection before background subtraction",
-        "Measured complex reflection, the complete saved prediction, and its fitted affine background on the actual sloped bead paths. No additional subtraction or fit is applied.",
+        "Measured complex reflection, the complete saved prediction and the fixed affine background from exactly five valid points at each end. Open squares mark those ten reference samples. Illuminated samples and the model never enter the background estimate.",
     )
 
 
@@ -468,7 +475,7 @@ def signal_strength_figure(
 def scale_background_figure(
     result,
     *,
-    title="Fitted common scale and affine backgrounds",
+    title="Fitted common scale and fixed endpoint backgrounds",
     x_label="Frequency [GHz]",
     amplitude_y_label="Field-amplitude scale",
     phase_y_label="Common scale phase [rad]",
@@ -507,5 +514,5 @@ def scale_background_figure(
         figure,
         "scale_and_backgrounds",
         "Fitted scale and backgrounds",
-        "The saved common complex coefficient supplies the field scale and phase. Lower panels show each fitted affine background at the scan centre and its change across the retained chord; no new parameters are fitted.",
+        "The saved common complex coefficient supplies the field scale and phase. Lower panels show each fixed endpoint-derived background at the scan centre and its change across the retained chord; illuminated points and model predictions do not determine these backgrounds.",
     )

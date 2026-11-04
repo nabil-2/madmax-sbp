@@ -16,10 +16,32 @@ from .analysis_band import frequency_mask, load_raw_traces, require_analysis_ban
 
 EPS0 = 8.8541878128e-12
 TRANSIENT_IDS = [73, 74, 192, 193, 194, 195]
+BACKGROUND_METHOD = "fixed_first_last_five"
+REFERENCE_POINTS_PER_END = 5
+
+
+def endpoint_background(position_m, traces, points_per_end=REFERENCE_POINTS_PER_END):
+    """Fit a complex line using only the first/last five valid scan points.
+
+    Traces have axes (position, frequency). Return the interpolated background,
+    reference-point mask and coefficients for [1, position/(0.1 m)].
+    No illuminated data or model prediction enters this calculation.
+    """
+    position = np.asarray(position_m, float)
+    traces = np.asarray(traces, complex)
+    if len(position) < 2 * points_per_end:
+        raise ValueError("Each thread needs five valid measurements at both ends.")
+    order = np.argsort(position, kind="stable")
+    reference = np.zeros(len(position), bool)
+    reference[order[:points_per_end]] = True
+    reference[order[-points_per_end:]] = True
+    design = np.column_stack((np.ones(len(position)), position / 0.1))
+    coefficients = np.linalg.lstsq(design[reference], traces[reference], rcond=None)[0]
+    return design @ coefficients, reference, coefficients
 
 
 def projection(u, y, p):
-    """Variable projection of complex baseline and amplitude (p real)."""
+    """Original Gaussian quality diagnostic; nuisance terms are not the physical background."""
     center, width, curvature = p
     g = np.exp((-2 / width**2 + 1j * curvature) * (u - center) ** 2)
     design = np.column_stack([np.ones(len(u)), u, g])
@@ -106,7 +128,9 @@ def prepare_measurement(run_dir, output_file):
     Only 20–22 GHz enters any calculation. No additive template is subtracted
     from the measured reflection. Six recorded transition samples are omitted
     from profile fitting and the later 3D likelihood. Complex affine backgrounds
-    remain parameters of the downstream fits.
+    use exactly five valid points at each end and stay fixed in the geometry fit.
+    The original Gaussian quality diagnostic retains its own nuisance terms;
+    these never supply the physical background or background subtraction.
     """
     run_dir = Path(run_dir)
     frequency, raw = load_raw_traces(run_dir)
@@ -126,9 +150,18 @@ def prepare_measurement(run_dir, output_file):
     fits = np.empty((4, nf, 3), complex)
     quality = np.empty((nf, 4), bool)
     et = np.empty((nf, 4))
+    background = np.empty_like(raw)
+    reference_mask = np.zeros(len(raw), bool)
+    background_coefficients = np.empty((4, nf, 2), complex)
     for t in range(4):
         q = np.flatnonzero((thread == t) & ~transient)
         u = coord[q] / 0.1
+        baseline, reference, coefficients = endpoint_background(coord[q], raw[q])
+        reference_mask[q] = reference
+        all_points = thread == t
+        design = np.column_stack((np.ones(all_points.sum()), coord[all_points] / 0.1))
+        background[all_points] = design @ coefficients
+        background_coefficients[t] = coefficients.T
         previous = None
         for k, f in enumerate(frequency):
             p, c, rms, fraction, ok = fit_profile(u, raw[q, k], previous)
@@ -154,6 +187,11 @@ def prepare_measurement(run_dir, output_file):
         transverse_xyz_log_m=xyz,
         signed_line_m=coord,
         transient_trace_mask=transient,
+        fixed_background_S22=background,
+        background_reference_mask=reference_mask,
+        background_coefficients=background_coefficients,
+        background_method=BACKGROUND_METHOD,
+        reference_points_per_end=REFERENCE_POINTS_PER_END,
     )
     return output_file
 
@@ -168,6 +206,8 @@ def load_measurement(path):
             )
         if archive["reflection_preprocessing"].item() != "none":
             raise ValueError("3D analysis requires measured S22 without template correction.")
+        if "background_method" not in archive or archive["background_method"].item() != BACKGROUND_METHOD:
+            raise ValueError("Regenerate the 3D measurement input: backgrounds must use only the first and last five valid points.")
         return dict(archive)
 
 

@@ -1,7 +1,8 @@
 """Fit disk shifts/tilts and straight thread endpoint heights to complex S22.
 
 Geometry is shared across selected frequencies. One complex response scale per
-frequency and a complex affine background per thread are eliminated analytically.
+frequency is eliminated analytically. Each thread's affine background is fixed
+from five off-beam points at each end, before the model is evaluated.
 No radial rotation or Gaussian field is fed to the receive-field model.
 """
 
@@ -14,9 +15,10 @@ from .receive_field import NOM_DISKS_MM, NOM_THREADS_MM
 from .tilted_disks import TiltedReceiveModel
 from .exterior_field import ExteriorLineEvaluator
 from .analysis_band import require_analysis_band
-from .analysis_3d_inputs import load_measurement
+from .analysis_3d_inputs import BACKGROUND_METHOD, load_measurement
 
 NOM_Z_MM = np.r_[32.011, NOM_THREADS_MM]
+APERTURE_TREATMENT = "all_threads_disk_aperture"
 NAMES = (
     [f"D{j}_dz_mm" for j in (1, 2, 3)]
     + [f"D{j}_slope_{a}_mrad" for j in (1, 2, 3) for a in ("x", "y")]
@@ -70,15 +72,16 @@ class EndpointFitProblem:
         for t in range(4):
             take = (data["thread_index"] == t) & ~data["transient_trace_mask"]
             xy = data["transverse_xyz_log_m"][take, :2]
+            inside_aperture = np.sum(xy**2, axis=1) <= m.radius**2
+            basis = interpolation(xy)
+            basis[~inside_aperture] = 0
             u = data["signed_line_m"][take]
             endpoints = xy[[np.argmin(u), np.argmax(u)]]
             fraction = (u - u.min()) / (u.max() - u.min())
             weights = np.column_stack([1 - fraction, fraction])
             np.testing.assert_allclose(weights @ endpoints, xy, atol=1e-14)
             y = data["observed_S22"][take][:, ix].T
-            X = np.column_stack([np.ones(len(u)), u / 0.1])
-            inv = np.linalg.pinv(X)
-            projection = np.eye(len(u)) - X @ inv
+            background = data["fixed_background_S22"][take][:, ix].T
             self.lines.append(
                 dict(
                     thread=t,
@@ -86,19 +89,20 @@ class EndpointFitProblem:
                     u=u,
                     weights=weights,
                     endpoint_xy=endpoints,
-                    basis=interpolation(xy),
+                    basis=basis,
+                    inside_aperture=inside_aperture,
                     y=y,
-                    yp=y @ projection,
-                    nuisance=X,
-                    inverse=inv,
-                    projection=projection,
+                    yp=y - background,
+                    background=background,
+                    background_reference_mask=data["background_reference_mask"][take],
                     trace_index=data["trace_index"][take],
                 )
             )
         self.alpha = 4 * np.pi * 0.001465**3 * (9.23 - 1) / (9.23 + 2)
         self.kappa = 1j * 2 * np.pi * self.f * 8.8541878128e-12 * self.alpha / 4
         self.exterior = ExteriorLineEvaluator(
-            m, self.lines[0]["xy"], node_count=exterior_nodes
+            m, self.lines[0]["xy"][self.lines[0]["inside_aperture"]],
+            node_count=exterior_nodes,
         )
         self._geometry_constraints()
         self.calls = 0
@@ -283,8 +287,12 @@ class EndpointFitProblem:
             z = (line["weights"] @ endpoints[t]) * 0.001
             zs.append(z)
             if t == 0:
-                wave = self.exterior.waves(
-                    exterior_state, z - sol["disks_m"][2] - 0.001
+                # Retain every measured point, but predict a bead signal only
+                # inside the same disk aperture used for the other threads.
+                inside = line["inside_aperture"]
+                wave = np.zeros((len(self.f), len(z), 2), complex)
+                wave[:, inside] = self.exterior.waves(
+                    exterior_state, z[inside] - sol["disks_m"][2] - 0.001
                 )
             else:
                 j = t - 1
@@ -313,7 +321,7 @@ class EndpointFitProblem:
             template = np.conj(self.kappa[:, None] * Q)
             waves.append(wave)
             templates.append(template)
-            projected.append(template @ line["projection"])
+            projected.append(template)
         pp = np.concatenate([projected[t] for t in self.fit_threads], axis=1)
         yp = np.concatenate([self.lines[t]["yp"] for t in self.fit_threads], axis=1)
         norm = np.linalg.norm(yp, axis=1)
@@ -342,7 +350,7 @@ class EndpointFitProblem:
         relative_by_thread = []
         for line, template, pt in zip(self.lines, templates, projected):
             signal = coef[:, None] * template
-            background = (line["y"] - signal) @ line["inverse"].T @ line["nuisance"].T
+            background = line["background"]
             pred = signal + background
             predictions.append(pred)
             backgrounds.append(background)
@@ -418,6 +426,12 @@ def summarize(p, q, details):
         parameters=q.tolist(),
         fit_observable="Measured complex S22 on each fitted physical scan chord, with pointwise z along the straight thread.",
         reflection_preprocessing="none",
+        aperture_treatment=APERTURE_TREATMENT,
+        aperture_description="All retained samples enter the fit. The physical bead-induced signal is zero for x²+y² > R² on every thread; fixed endpoint-derived affine backgrounds remain active there.",
+        background_method=BACKGROUND_METHOD,
+        reference_points_per_end=5,
+        background_reference_trace_indices_by_thread={str(line["thread"]): line["trace_index"][line["background_reference_mask"]].tolist() for line in p.lines},
+        background_description="Per thread and frequency, a complex straight line is fitted only to the first and last five valid points, then interpolated and held fixed during every profile and geometry fit.",
         geometry_refitted=bool(details.get("geometry_refitted", False)),
         fit_threads=list(p.fit_threads),
         held_out_threads=[t for t in range(4) if t not in p.fit_threads],
@@ -453,7 +467,7 @@ def summarize(p, q, details):
         pooled_all_thread_residual=pooled(r["all_relative"]),
         pooled_interior_shared_scale_residual=pooled(r["interior_shared"]),
         pooled_interior_reprofiled_scale_residual=pooled(r["interior_reprofiled"]),
-        residual_weighting="Equal weight per selected frequency after normalizing by the combined projected measured signal norm; within each frequency raw complex samples have equal absolute weight, so strong threads dominate. Per-thread relative residuals and measured energy fractions are also provided.",
+        residual_weighting="Equal weight per selected frequency after normalizing by the combined endpoint-background-subtracted measured signal norm; within each frequency raw complex samples have equal absolute weight, so strong threads dominate. Per-thread relative residuals and measured energy fractions are also provided.",
         minimum_continuous_bead_center_to_surface_distance_mm=p.clearance(q),
         minimum_continuous_bead_surface_clearance_mm=p.clearance(q) - 1.465,
         minimum_conservative_plane_clearance_margin_mm=p.clearance(q) - 1.465,
@@ -468,15 +482,17 @@ def summarize(p, q, details):
         interface_projection_scheme="scattering",
         fixed_beam="Measured OMC six-profile mixture; each fitted Gaussian centred on the disk axis (x=y=0), measured amplitudes and widths, flat phase; whole-plane incident power 1 W.",
         incident_beam_alignment="each_gaussian_centered_on_disk_axis",
-        uncertainty_scope="Conditional complex-residual bootstrap with geometry and beam fixed; excludes geometry, beam, calibration and model uncertainty.",
+        uncertainty_scope="Conditional residual block bootstrap with geometry and beam fixed; endpoint backgrounds are re-estimated only from the same ten reference points per draw. Excludes geometry, beam, calibration and model uncertainty.",
         interior_propagation="Exact contraction and evaluation of the original cubic matrix-bank spline at each bead z.",
-        exterior_propagation="Angular spectrum of the full prescribed incident beam and outgoing modal field; positive heights, incident evanescent components removed.",
+        exterior_propagation="Angular spectrum of the prescribed incident beam and outgoing modal field, sampled only inside the disk aperture for T0; zero bead-induced signal outside, as for T1–T3. Positive heights; incident evanescent components removed.",
         feasibility=p.feasible(q),
         source_file="src/analysis_3d.py",
     )
     arr = dict(
         frequency_hz=p.f,
         reflection_preprocessing="none",
+        aperture_treatment=APERTURE_TREATMENT,
+        background_method=BACKGROUND_METHOD,
         incident_beam_alignment="each_gaussian_centered_on_disk_axis",
         measured_disk_surfaces=True,
         disk_surface_sha256=p.model.surfaces.fingerprint,
@@ -490,6 +506,8 @@ def summarize(p, q, details):
         ),
         signed_line_m=np.concatenate([l["u"] for l in p.lines]),
         xy_m=np.concatenate([l["xy"] for l in p.lines]),
+        inside_disk_aperture=np.concatenate([l["inside_aperture"] for l in p.lines]),
+        background_reference_mask=np.concatenate([l["background_reference_mask"] for l in p.lines]),
         z_m=r["z_m"],
         directional_waves_V_per_m=r["waves"],
         thread_endpoint_z_mm=ends,
