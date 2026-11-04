@@ -1,4 +1,4 @@
-"""Small text-template helper shared by the notebook plotting functions."""
+"""Shared notebook display and text helpers."""
 
 import re
 
@@ -25,3 +25,13 @@ def render_text(template, **context):
         return format(context[name], specification or "")
 
     return _TOKEN.sub(replace, template)
+
+
+def display_figure(figure):
+    """Embed an actual PNG even when execution uses a headless backend."""
+    from io import BytesIO
+    from IPython.display import Image, display
+
+    buffer = BytesIO()
+    figure.savefig(buffer, format="png", dpi=110, bbox_inches="tight")
+    display(Image(data=buffer.getvalue()))

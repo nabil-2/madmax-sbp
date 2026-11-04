@@ -11,7 +11,7 @@ from matplotlib.lines import Line2D
 from matplotlib.ticker import MaxNLocator
 from .receive_field import NOM_DISKS_MM
 from .analysis_3d import NOM_Z_MM
-from .plot_text import render_text
+from .plot_text import render_text, display_figure
 
 TITLE = "Disk tilts + sloped threads"
 CASE = "disk_tilts_threads"
@@ -65,7 +65,7 @@ def present(entries, output_dir=None, *, captions=False):
                 fig.savefig(
                     out / (item["stem"] + "." + extension), dpi=160, bbox_inches="tight"
                 )
-        display(fig)
+        display_figure(fig)
         if captions:
             display(Markdown(item["caption"]))
         plt.close(fig)

@@ -78,3 +78,10 @@ The notebooks reproduce all plots and save PNG/PDF files to the ignored
 ``plots/1d/`` and ``plots/3d/full_tilt/`` trees. Titles, axes, legends, colorbars
 and annotation templates are editable in their plot cells. The notebooks are
 committed with the rendered figures; the exports and large data are not.
+
+
+The :notebook:`sbp_3d_analysis.ipynb` also shows raw dB traces, the prescribed
+incident-beam profile, profile-quality selection, complex-plane fits, fitted
+backgrounds, field spectra on the sloped paths, and spatial residual maps.
+Each plot cell embeds its PNG in the saved notebook and exports PNG/PDF files;
+viewing these rendered outputs requires no running kernel.

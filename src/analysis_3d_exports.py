@@ -425,3 +425,24 @@ def measured_transverse_integrals(run_dir, frequency_GHz=20.825):
             for _, line in sorted(lines.items())
         ]
     )
+
+
+def incident_beam_profile(bank_path, beam_path, frequency_GHz=20.825):
+    """Sample the actual prescribed, whole-plane 1-W input; no peak rescaling."""
+    from .receive_field import ReceiveModel
+
+    model = ReceiveModel(bank_path, beam_path=beam_path)
+    matches = np.flatnonzero(abs(model.f - frequency_GHz * 1e9) < 1)
+    if len(matches) != 1:
+        raise ValueError("The input-beam frequency must be present in the bank.")
+    k = int(matches[0])
+    field = (model.scale * model.beam_field()[k]).reshape(
+        (len(model.x), len(model.y)), order="F"
+    )
+    return dict(
+        frequency_hz=model.f[[k]],
+        x_m=model.x,
+        y_m=model.y,
+        field_V_per_m=field,
+        disk_radius_m=model.radius,
+    )

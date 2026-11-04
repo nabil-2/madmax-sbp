@@ -20,7 +20,7 @@ from .fit_1D import (ModelConfig as _FitPlotConfig, evaluate_model as _fitplot_e
 
 from . import sbp_analysis
 from .data_paths import DATA_DIR, OUTPUTS_DIR, REFERENCE_DATA_DIR, analysis_output_path
-from .plot_text import render_text
+from .plot_text import render_text, display_figure
 from .analysis_band import require_analysis_band
 
 
@@ -358,6 +358,31 @@ def plot_raw_traces(
     return figure
 
 
+def plot_raw_magnitude(
+    data, frequency_GHz=20.825, *,
+    title="Raw reflection magnitude · {frequency_GHz:.4f} GHz",
+    panel_title_template="{thread_name} · {z_mm:.3f} mm from mirror",
+    x_label="Distance from calibrated start [cm]",
+    y_label=r"$20\log_{10}|\Gamma|$ [dB]",
+):
+    """One trace per thread, with a common dB range on the four panels."""
+    k = data.frequency_index(frequency_GHz)
+    figure, axes = _grid(len(_thread_indices(data)))
+    lower, upper = np.inf, -np.inf
+    for axis, thread in zip(axes, _thread_indices(data)):
+        position, traces = _deduplicated_line(data.lines[thread])
+        magnitude = 20 * np.log10(np.maximum(abs(traces[:, k]), 1e-15))
+        axis.plot(position * 100, magnitude)
+        lower, upper = min(lower, magnitude.min()), max(upper, magnitude.max())
+        axis.set(title=_thread_title(data, thread, panel_title_template),
+                 xlabel=render_text(x_label), ylabel=render_text(y_label))
+    margin = max((upper-lower)*0.06, 0.02)
+    for axis in axes:
+        axis.set_ylim(lower-margin, upper+margin)
+    figure.suptitle(render_text(title, frequency_GHz=data.frequencies_Hz[k]/1e9))
+    return figure
+
+
 def plot_reference_subtraction(
         data, frequency_GHz=20.825, *,
         title="Off-beam reference subtraction · {frequency_GHz:.4f} GHz",
@@ -533,13 +558,12 @@ def configure_style():
 
 def present(figure, stem, output_dir=None):
     """Display one figure once; optionally export PNG/PDF under the run's outputs."""
-    from IPython.display import display
     if output_dir is not None:
         destination = Path(output_dir)
         destination.mkdir(parents=True, exist_ok=True)
         for extension in ("png", "pdf"):
             figure.savefig(destination / f"{stem}.{extension}", bbox_inches="tight")
-    display(figure)
+    display_figure(figure)
     plt.close(figure)
 
 

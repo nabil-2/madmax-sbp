@@ -319,12 +319,13 @@ in parallel and eight Julia threads per case. Its local run manifest is
 
 ## 3D analysis with disk and thread tilts
 
-Open [sbp_3d_analysis.ipynb](sbp_3d_analysis.ipynb). It starts with boost spectra,
-then shows measured profiles, the external beam input, complex fitted chords,
-finite-bead line responses, model electric-field maps, nominal/fitted geometry,
-residuals, and the full-pull comparison. The figures use the original corrected
-full-tilt report plotting code, including separate disk projection and adjustment
-figures. Notebook outputs are included; large measurements and banks are not.
+Open [sbp_3d_analysis.ipynb](sbp_3d_analysis.ipynb). Its **29 rendered plots** include
+boost curves, raw measurement spectra and dB traces, the actual incident-beam profile,
+frequency-selection diagnostics, complex chord fits and backgrounds, field
+spectra/maps, nominal/fitted geometry, spatial residuals and the full-pull
+comparison. Each plot cell exports PNG/PDF under `plots/3d/full_tilt/`, with
+editable labels in the notebook. Embedded PNG outputs also work during headless
+execution; large measurements, banks and plot exports remain excluded from Git.
 
 The likelihood uses measured **complex S22 samples directly**, at their actual
 recorded x/y and fitted z. It fits three disk shifts, two slopes per disk and two
@@ -344,7 +345,8 @@ an independent spectral curve.
   SLSQP fitting and saved result arrays.
 - `src/analysis_3d_exports.py`: conditional residual-bootstrap bands and physical
   electric-field maps at horizontal thread midpoint sections.
-- `src/analysis_3d_plots.py`: the original full-tilt report figures.
+- `src/analysis_3d_plots.py`: the full-tilt report figures.
+- `src/analysis_3d_diagnostics.py`: input, field, background and residual diagnostics.
 - `src/build_bank.jl`: CPU/CUDA propagation-bank construction.
 
 The independent beam scan contains six Gaussian **magnitude** profiles at scan
