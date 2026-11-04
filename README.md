@@ -365,18 +365,17 @@ and export results. These switches default to off; loading a notebook does not
 start an optimization. No additive endpoint-template correction is applied.
 Old corrected inputs are rejected by the measurement loader.
 
-The local spectra, backgrounds, conditional bands and field amplitudes have
-been recomputed from measured S22 at the saved geometry. **The 17 geometry
-parameters have not been reoptimized after removing the correction.** The
-original geometry used 33 frequencies; the raw-data profile-quality mask now
-selects 35. The result keeps these masks separate. The original corrected
-products are archived locally under `data/3d/history/additive_template_correction/`.
+The local spectra, backgrounds, conditional bands and field maps use a fresh
+fit of all 17 geometry parameters to measured S22, without additive template
+correction. The 35-bin raw-data quality mask determines geometry; all 401 bins
+are evaluated for the dense spectrum. The fit remains conditional on the fixed
+incident-beam and material assumptions. Runtime, convergence and validation
+records are saved locally under `outputs/3d_rerun/`.
 
-The 120-mode local bank contains the historical 33 geometry-fit frequencies.
-Rebuild it with the updated configuration before a new fit, which requires all
-35 raw-data quality-selected frequencies. A bank with
-all 401 bins is needed to recompute a 20–22 GHz dense curve; the included local
-saved spectrum already covers that band. To build a bank with Julia 1.10+:
+The 120-mode local fitting bank contains all 35 quality-selected frequencies.
+`data/3d/bank_full401/` contains all 401 bins for the dense spectrum. The banks
+reuse verified propagation operators at the same model revision, transverse
+basis and grid; the geometry-dependent interfaces and fields are solved afresh. To build a bank with Julia 1.10+:
 
 ```bash
 julia --project=julia -e 'using Pkg; Pkg.add(PackageSpec(url="https://github.com/nabil-2/BoostFractor.jl", rev="acf4f491fe633ab05c3b8abbafe6d6288e42aba0"))'

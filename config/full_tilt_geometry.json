@@ -1,4 +1,5 @@
 {
+  "family": "disk_tilts_threads",
   "parameter_order": [
     "D1_dz_mm",
     "D2_dz_mm",
@@ -19,47 +20,73 @@
     "T3_B_dz_mm"
   ],
   "parameters": [
-    0.1744138029538027,
-    0.2804865950878075,
-    -0.1426169989976548,
-    0.4018620530175993,
-    -3.0557195378470015,
-    1.9607411022377872,
-    3.5069283683030137,
+    0.17813622570617663,
+    0.27995098644329236,
+    -0.14341363126410125,
+    0.4849492047515147,
+    -3.0443316795052704,
+    1.919089215139969,
+    3.5478925720916625,
     -5.0,
-    0.44058425434487836,
+    0.35733372620670306,
     2.0,
-    1.9999999999372897,
-    -2.0,
-    -2.0,
-    -2.0,
-    -1.8925185348805673,
     2.0,
-    -0.6736240780608223
+    -2.0,
+    -2.0,
+    -2.0,
+    -1.9126327014328044,
+    2.0,
+    -0.6686411950246361
   ],
+  "fit_observable": "Measured complex S22 on each fitted physical scan chord, with pointwise z along the straight thread.",
+  "reflection_preprocessing": "none",
+  "geometry_refitted": true,
+  "fit_threads": [
+    0,
+    1,
+    2,
+    3
+  ],
+  "held_out_threads": [],
+  "geometry_frequency_count": 35,
   "disk_nearface_z_mm": [
-    7.977413802953802,
-    17.936486595087807,
-    27.368383001002343
+    7.981136225706177,
+    17.93595098644329,
+    27.367586368735896
+  ],
+  "disk_shifts_mm": [
+    0.17813622570617663,
+    0.27995098644329236,
+    -0.14341363126410125
   ],
   "disk_slopes_mrad": [
     [
-      0.4018620530175993,
-      -3.0557195378470015
+      0.4849492047515147,
+      -3.0443316795052704
     ],
     [
-      1.9607411022377872,
-      3.5069283683030137
+      1.919089215139969,
+      3.5478925720916625
     ],
     [
       -5.0,
-      0.44058425434487836
+      0.35733372620670306
     ]
+  ],
+  "disk_tilt_magnitude_mrad": [
+    3.082705127016412,
+    4.033642105597405,
+    5.012710490963073
+  ],
+  "gaps_mm": [
+    7.981136225706177,
+    8.954814760737115,
+    8.431635382292605
   ],
   "thread_endpoint_z_mm": [
     [
       34.011,
-      34.01099999993729
+      34.011
     ],
     [
       21.0835,
@@ -67,11 +94,29 @@
     ],
     [
       11.2295,
-      11.336981465119432
+      11.316867298567196
     ],
     [
       5.9015,
-      3.2278759219391775
+      3.232858804975364
+    ]
+  ],
+  "thread_endpoint_shifts_mm": [
+    [
+      2.0,
+      2.0
+    ],
+    [
+      -2.0,
+      -2.0
+    ],
+    [
+      -2.0,
+      -1.9126327014328044
+    ],
+    [
+      2.0,
+      -0.6686411950246361
     ]
   ],
   "thread_endpoint_xy_m": [
@@ -116,15 +161,205 @@
       ]
     ]
   ],
-  "fit_threads": [
-    0,
-    1,
-    2,
-    3
+  "thread_midpoint_z_mm": [
+    34.011,
+    21.0835,
+    11.273183649283599,
+    4.567179402487682
   ],
-  "pooled_relative_rms": 0.30402259334504994,
-  "uncertainty_scope": "Conditional complex-residual bootstrap with geometry and beam fixed; excludes geometry, beam, calibration and model uncertainty.",
+  "thread_end_to_end_delta_z_mm": [
+    0.0,
+    0.0,
+    0.08736729856719627,
+    -2.6686411950246365
+  ],
+  "thread_slope_mrad": [
+    0.0,
+    0.0,
+    0.213855655094448,
+    -6.58973972791041
+  ],
   "endpoint_definition": "A=min and B=max retained signed scan coordinate; actual recorded XY endpoints, not measured mechanical supports.",
+  "thread_shape": "Straight linear interpolation between two independently fitted endpoint z positions; no sag or xy motion.",
+  "pooled_relative_rms": 0.3039335932634163,
+  "pooled_all_thread_residual": 0.3039335932634163,
+  "pooled_interior_shared_scale_residual": 0.27165155303056454,
+  "pooled_interior_reprofiled_scale_residual": 0.27164543215583814,
+  "residual_weighting": "Equal weight per selected frequency after normalizing by the combined projected measured signal norm; within each frequency raw complex samples have equal absolute weight, so strong threads dominate. Per-thread relative residuals and measured energy fractions are also provided.",
+  "minimum_continuous_bead_center_to_surface_distance_mm": 1.743774403165952,
+  "minimum_continuous_bead_surface_clearance_mm": 0.2787744031659518,
+  "minimum_conservative_plane_clearance_margin_mm": 0.2787744031659518,
+  "clearance_definition": "Conservative normal distance to infinite neighboring face planes over the continuous chord clipped at radius R+bead_radius, minus bead radius. This is a lower-bound safety margin, not the true Euclidean gap to a finite disk edge. The mirror distance is exact.",
+  "required_bead_surface_clearance_margin_mm": 0.0,
+  "surface_RMS_displacement_mm": 0.37282352715264266,
+  "fit_details": {
+    "geometry_refitted": true,
+    "reflection_preprocessing": "none",
+    "success": true,
+    "message": "Optimization terminated successfully",
+    "status": 0,
+    "iterations": 17,
+    "function_evaluations": 31,
+    "gradient_evaluations": 17,
+    "initial_loss": 0.09242973726424956,
+    "final_loss": 0.0923756291140117,
+    "start_index": 0,
+    "start_name": "previous geometry, all coordinates reoptimized",
+    "node": "max-wn095.desy.de",
+    "elapsed_seconds": 191.11816866183653,
+    "derivative": "Parallel two-point disk derivatives and cached serial thread derivatives; absolute step 1e-4.",
+    "median_gradient_seconds": 5.499180275015533,
+    "selected_start": "start_0",
+    "export_node": "max-wn095.desy.de",
+    "fit_frequency_count": 35,
+    "export_frequency_count": 401,
+    "attempted_start_count": 2,
+    "converged_start_count": 1,
+    "nominal_start_check": {
+      "converged": false,
+      "reason": "Stopped optional nominal-start check after the warm-start fit converged and passed dense validation; prioritize turnaround.",
+      "slurm_job": "25608992_1",
+      "iteration": 60,
+      "best_observed_relative_rms": 0.33233674182275047,
+      "parameters_at_stop": [
+        0.011213218972827049,
+        0.5282351073358245,
+        -0.05732901922724149,
+        -0.5279344556208098,
+        -2.6751476805345433,
+        -0.7650021179005067,
+        5.0,
+        -2.613178779074542,
+        4.25613085406039,
+        -1.1147070741891347,
+        -1.8163124095207441,
+        -1.3355079797365212,
+        -1.733706963403756,
+        1.9999999999999998,
+        1.8652955116685228,
+        2.0,
+        -1.416961756397793
+      ],
+      "stopped_utc": "2026-11-04T11:39:00.647438+00:00"
+    }
+  },
+  "local": {
+    "20.795": {
+      "frequency_hz": 20795000000.0,
+      "beta2_conditional": 619.5004223901973,
+      "relative_raw_residual": 0.22199017645655028,
+      "all_thread_residual": 0.22199017645655025,
+      "interior_shared_scale_residual": 0.21728883960279863,
+      "interior_reprofiled_scale_residual": 0.21728864900365927,
+      "relative_residual_by_thread": [
+        1.1060638815418264,
+        0.8022197971118353,
+        0.4118698820243276,
+        0.1847243265157886
+      ],
+      "projected_signal_energy_fraction_by_thread": [
+        0.0017558781011903152,
+        0.002760190522670267,
+        0.08402266046611905,
+        0.9114612709100204
+      ],
+      "quadratic_scale_complex": [
+        -5.503380842332035,
+        -3.3799646735133426
+      ],
+      "incident_power_scale": 6.458433392855067,
+      "beta2_received_geometry_only": 95.92115993261578,
+      "beta2_total_geometry_only": 121.70491247726345
+    },
+    "20.820": {
+      "frequency_hz": 20820000000.0,
+      "beta2_conditional": 455.176517132485,
+      "relative_raw_residual": 0.21939856606580063,
+      "all_thread_residual": 0.21939856606580066,
+      "interior_shared_scale_residual": 0.218184738217822,
+      "interior_reprofiled_scale_residual": 0.21818473405880964,
+      "relative_residual_by_thread": [
+        0.9328865059307612,
+        1.3423705848896084,
+        0.1852564325349836,
+        0.20972479039571967
+      ],
+      "projected_signal_energy_fraction_by_thread": [
+        0.0006456405213436107,
+        0.002291281144190083,
+        0.04244985036505399,
+        0.9546132279694124
+      ],
+      "quadratic_scale_complex": [
+        3.7257294339094855,
+        0.7381465622383981
+      ],
+      "incident_power_scale": 3.7981469379216835,
+      "beta2_received_geometry_only": 119.84173455425977,
+      "beta2_total_geometry_only": 164.12759114409636
+    },
+    "20.825": {
+      "frequency_hz": 20825000000.0,
+      "beta2_conditional": 731.5370252371308,
+      "relative_raw_residual": 0.16888836647790156,
+      "all_thread_residual": 0.16888836647790156,
+      "interior_shared_scale_residual": 0.16677569221038127,
+      "interior_reprofiled_scale_residual": 0.16677559180817247,
+      "relative_residual_by_thread": [
+        1.1501708511558626,
+        1.120245699422268,
+        0.2874620290023564,
+        0.14201933891190577
+      ],
+      "projected_signal_energy_fraction_by_thread": [
+        0.0005475719230532784,
+        0.0030448801686655917,
+        0.062125951276992254,
+        0.9342815966312888
+      ],
+      "quadratic_scale_complex": [
+        4.202825368614709,
+        -4.160772799058655
+      ],
+      "incident_power_scale": 5.9140317351581535,
+      "beta2_received_geometry_only": 123.69514706663438,
+      "beta2_total_geometry_only": 172.4278094960503
+    },
+    "21.000": {
+      "frequency_hz": 21000000000.0,
+      "beta2_conditional": 156.42058486941934,
+      "relative_raw_residual": 0.5409754609945416,
+      "all_thread_residual": 0.5409754609945415,
+      "interior_shared_scale_residual": 0.5296450973857013,
+      "interior_reprofiled_scale_residual": 0.5296262828551233,
+      "relative_residual_by_thread": [
+        1.105130275941978,
+        1.257805212156807,
+        1.1186142101879855,
+        0.4638921186832512
+      ],
+      "projected_signal_energy_fraction_by_thread": [
+        0.012893986052398467,
+        0.013437344791986425,
+        0.044511532171266126,
+        0.929157136984349
+      ],
+      "quadratic_scale_complex": [
+        -1.3047930347025556,
+        1.6965840278425703
+      ],
+      "incident_power_scale": 2.1402995647663023,
+      "beta2_received_geometry_only": 73.08350076055768,
+      "beta2_total_geometry_only": 148.20220093981754
+    }
+  },
+  "interface_projection_scheme": "scattering",
+  "fixed_beam": "Measured OMC six-profile mixture, nominal center, width, zero phase curvature; whole-plane incident-power normalization.",
+  "uncertainty_scope": "Conditional complex-residual bootstrap with geometry and beam fixed; excludes geometry, beam, calibration and model uncertainty.",
+  "interior_propagation": "Exact contraction and evaluation of the original cubic matrix-bank spline at each bead z.",
+  "exterior_propagation": "Angular spectrum of the full prescribed incident beam and outgoing modal field; positive heights, incident evanescent components removed.",
+  "feasibility": true,
+  "source_file": "src/analysis_3d.py",
   "nominal_disk_nearface_z_mm": [
     7.803,
     17.656,
@@ -136,7 +371,6 @@
     13.2295,
     3.9015
   ],
-  "scope": "Historical 17-parameter geometry held fixed; common scale, affine backgrounds and conditional bands reevaluated using measured S22 without template correction.",
   "nominal_disk_slopes_mrad": [
     [
       0.0018324466666666665,
@@ -151,12 +385,7 @@
       0.022055615516433133
     ]
   ],
-  "fit_details": {
-    "endpoint_adjustment_bound_mm": 2.0
-  },
-  "reflection_preprocessing": "none",
-  "geometry_refitted": false,
-  "original_geometry_pooled_relative_rms": 0.2776705562136228,
+  "scope": "Fresh geometry fit to measured S22 without additive template correction.",
   "profile_quality_frequency_count": 35,
-  "historical_geometry_fit_frequency_count": 33
+  "nominal_geometry_source": "Corrected mirror\u2013D1 gap 7.803 mm."
 }

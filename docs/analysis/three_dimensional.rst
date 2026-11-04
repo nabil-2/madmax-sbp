@@ -33,11 +33,11 @@ The prepared archive stores ``observed_S22`` and
 ``reflection_preprocessing="none"``; old template-corrected input archives are
 rejected and must be regenerated.
 
-The local displayed results have been updated to measured S22 by recomputing
-the common scale, affine backgrounds, conditional bands and field amplitudes
-at the saved geometry. **Geometry has not been reoptimized after removing the
-template correction.** Its original 33-bin fitting mask is preserved separately
-from the new raw-data profile-quality mask.
+The current results use a fresh fit of all 17 geometry parameters to measured
+S22 at the 35 quality-selected frequencies. The fitted geometry is then used
+for all 401 frequencies in 20–22 GHz, including new common scales, affine
+backgrounds, conditional bands and field maps. The bounds and incident-beam
+assumptions remain part of this conditional result.
 
 2. Select the geometry-fit frequencies
 --------------------------------------
@@ -268,9 +268,8 @@ Geometry minimizes
 SLSQP enforces the geometry constraints. Frequencies have equal normalized
 weight; samples within a frequency have equal absolute weight, so stronger
 threads dominate. Individual-thread residuals use the same c. The notebook's
-optional fit is one explicit start; the historical saved geometry was selected
-from multiple starts using the former preprocessing. Current displayed curves
-refit scale and backgrounds at that geometry using measured S22.
+optional fit is one explicit start. The current displayed geometry has been
+reoptimized against measured S22 using the 35-bin profile-quality selection.
 A small pooled residual does not establish a unique physical geometry.
 
 7. Calculate boost and diagnostic fields
@@ -290,9 +289,11 @@ Maps are horizontal sections at thread midpoint z, not sloped sampling paths.
 Blank pixels follow aperture/clearance masks; exterior T0 extends beyond the disk.
 Line-response plots instead show the finite-bead proxy
 :math:`\sqrt{|c_{\nu}Q|}`. A 401-bin bank is needed to recompute the full 20–22 GHz
-spectrum. The existing local fitting bank contains the historical 33 bins;
-rebuild it with the current ``config/3d_bank.toml`` before optimizing over all
-35 raw-data quality-selected bins. The fitting wrapper rejects an incomplete bank.
+spectrum. The local fitting bank contains all 35 quality-selected bins;
+``data/3d/bank_full401/`` supplies the dense evaluation. These banks reuse
+unchanged propagation operators at the configured basis, grid and frequency
+resolution; disk interfaces and fields are solved anew for each geometry.
+The fitting wrapper rejects an incomplete bank.
 
 8. Form conditional uncertainty bands
 -------------------------------------

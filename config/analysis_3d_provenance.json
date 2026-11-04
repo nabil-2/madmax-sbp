@@ -1,49 +1,53 @@
 {
   "origin_repository": "https://github.com/nabil-2/spider-bead-pull-ai",
-  "scope": "Measured S22 without additive template correction; scale/backgrounds, conditional bands and field amplitudes updated at historical geometry.",
+  "scope": "Fresh full-tilt geometry fit to measured S22; dense 401-bin reevaluation and conditional bootstrap.",
   "files": {
     "data/3d/measurement_inputs.npz": {
-      "bytes": 1395569,
+      "bytes": 1395563,
       "historical_origin_sha256": "3411b3a05d0feb29528e6f26108dcc8cd98449c152ee20d82acd2b2b40a641c2",
       "historical_origin_path": "src-ai/three_d/inputs/measurement_inputs.npz",
-      "generated_by": "src/analysis_3d_inputs.py / src/analysis_3d_exports.py; outputs/no_template_correction/refresh_results.py",
-      "sha256": "57f6883377b4070bfb828c42316ea3253db9d8a6ba50e82083df45bc5f7147f6"
+      "generated_by": "Current madmax-sbp code; outputs/3d_rerun/prepare.py, fit.py and export.py",
+      "sha256": "9b49017f6a19df812db1d7c2e571939d4d77a7043dc026b466799f786b3f8fb7"
     },
     "data/3d/conditional_bands.npz": {
-      "bytes": 17955,
+      "bytes": 17954,
       "historical_origin_sha256": "ab9f9eae1ba5822ba6bb453451d399ee123cf008ffd2c0e0030c73b754962da6",
       "historical_origin_path": "src-ai/refit_7p803/tilted_threads/results/conditional_bands.npz",
-      "generated_by": "src/analysis_3d_inputs.py / src/analysis_3d_exports.py; outputs/no_template_correction/refresh_results.py",
-      "sha256": "d0d485e2b33fca409fae9f47cd54a7553abad6eed3e888e0ef020ba5bb066c43"
+      "generated_by": "Current madmax-sbp code; outputs/3d_rerun/prepare.py, fit.py and export.py",
+      "sha256": "17ad2c15594ce7054627774259d7faf451e97b81b9cb99700782acce8d3f2b97"
     },
     "data/3d/field_maps.npz": {
-      "bytes": 1222891,
+      "bytes": 1222808,
       "historical_origin_sha256": "db6a6722fb9d9108842b3e1333ecd25c33cb685f550d0c752ce23b2908db752a",
       "historical_origin_path": "src-ai/refit_7p803/tilted_threads/results/field_maps.npz",
-      "generated_by": "src/analysis_3d_inputs.py / src/analysis_3d_exports.py; outputs/no_template_correction/refresh_results.py",
-      "sha256": "bf5e1618b378c2fa9784eb4f85b51977218d3db38429059cbba17b9f8c96e673"
+      "generated_by": "Current madmax-sbp code; outputs/3d_rerun/prepare.py, fit.py and export.py",
+      "sha256": "b7bf260ec95deb696e874d011fbb2aceebc90f4f2030b63fb8ea487374695970"
     },
     "data/3d/disk_tilts_threads.npz": {
-      "bytes": 9550973,
+      "bytes": 9550533,
       "historical_origin_sha256": "a56d5efd386a42c013db92fc580ed20415e964466d5d0678e8032124061ac4d0",
       "historical_origin_path": "src-ai/refit_7p803/tilted_threads/results/full401/disk_tilts_threads.npz",
-      "generated_by": "src/analysis_3d_inputs.py / src/analysis_3d_exports.py; outputs/no_template_correction/refresh_results.py",
-      "sha256": "0c5db8280d0b1fe61074ea69e9ba9f643bc875b72128f580e2b53f67ceb98c8c"
+      "generated_by": "Current madmax-sbp code; outputs/3d_rerun/prepare.py, fit.py and export.py",
+      "sha256": "33a05b2cac840e3c3ad5c636549fde95552cc8579be68c1b40ec001ed2c501c4"
     },
     "data/3d/beam_prior.npz": {
-      "sha256": "455b3ef951438ec7119c90d40fbe81d1f55930fa2c29e420ea540ca6331f7105",
-      "bytes": 148686,
-      "origin_path": "src-ai/three_d/measurements/omc/beam_prior.npz"
+      "sha256": "4e1907cdbefd90b77cbfd5f21567daba05bad3bfa3e0c9954b3c2b1e5d2d6406",
+      "bytes": 81042,
+      "origin_path": "src-ai/three_d/measurements/omc/beam_prior.npz",
+      "generated_by": "Current madmax-sbp code; outputs/3d_rerun/prepare.py, fit.py and export.py"
     }
   },
   "bank": {
-    "origin_path": "src-ai/three_d/tilted_threads/results/bank_fit_l7",
+    "origin_path": "src-ai/three_d/tilted_threads/results/bank_full401_l7",
     "local_path": "data/3d/bank",
-    "manifest_sha256": "a76e5a6d7dc489c6290f37b535032d0266b54bf5613666249dbf934ef1334bfc",
-    "BoostFractor_commit": "acf4f491fe633ab05c3b8abbafe6d6288e42aba0"
+    "manifest_sha256": "06c07009cc5995e5586b33b040694e84b37c6b89a070e0baef6c951179565a70",
+    "BoostFractor_commit": "acf4f491fe633ab05c3b8abbafe6d6288e42aba0",
+    "frequency_count": 35,
+    "source_full_bank": "data/3d/bank_full401",
+    "derivation": "Select all 35 current raw-data quality frequencies from the verified 401-frequency bank."
   },
   "reflection_preprocessing": "none",
-  "geometry_refitted": false,
+  "geometry_refitted": true,
   "profile_quality_frequency_count": 35,
   "historical_geometry_fit_frequency_count": 33,
   "historical_corrected_products": "data/3d/history/additive_template_correction",
@@ -61,5 +65,62 @@
     },
     "raw_preprocessing_all_arrays_reproduced": true,
     "beam_slice_parameters_bit_identical": true
+  },
+  "fit_details": {
+    "geometry_refitted": true,
+    "reflection_preprocessing": "none",
+    "success": true,
+    "message": "Optimization terminated successfully",
+    "status": 0,
+    "iterations": 17,
+    "function_evaluations": 31,
+    "gradient_evaluations": 17,
+    "initial_loss": 0.09242973726424956,
+    "final_loss": 0.0923756291140117,
+    "start_index": 0,
+    "start_name": "previous geometry, all coordinates reoptimized",
+    "node": "max-wn095.desy.de",
+    "elapsed_seconds": 191.11816866183653,
+    "derivative": "Parallel two-point disk derivatives and cached serial thread derivatives; absolute step 1e-4.",
+    "median_gradient_seconds": 5.499180275015533,
+    "selected_start": "start_0",
+    "export_node": "max-wn095.desy.de",
+    "fit_frequency_count": 35,
+    "export_frequency_count": 401,
+    "attempted_start_count": 2,
+    "converged_start_count": 1,
+    "nominal_start_check": {
+      "converged": false,
+      "reason": "Stopped optional nominal-start check after the warm-start fit converged and passed dense validation; prioritize turnaround.",
+      "slurm_job": "25608992_1",
+      "iteration": 60,
+      "best_observed_relative_rms": 0.33233674182275047,
+      "parameters_at_stop": [
+        0.011213218972827049,
+        0.5282351073358245,
+        -0.05732901922724149,
+        -0.5279344556208098,
+        -2.6751476805345433,
+        -0.7650021179005067,
+        5.0,
+        -2.613178779074542,
+        4.25613085406039,
+        -1.1147070741891347,
+        -1.8163124095207441,
+        -1.3355079797365212,
+        -1.733706963403756,
+        1.9999999999999998,
+        1.8652955116685228,
+        2.0,
+        -1.416961756397793
+      ],
+      "stopped_utc": "2026-11-04T11:39:00.647438+00:00"
+    }
+  },
+  "bank_full401": {
+    "local_path": "data/3d/bank_full401",
+    "frequency_count": 401,
+    "manifest_sha256": "0c61743c7e39e672b9071f9468c47fd0715e504559b2c1de24d10aaa4c16f726",
+    "scope": "Reused unchanged propagation operators; geometry is solved anew."
   }
 }

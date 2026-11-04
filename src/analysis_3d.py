@@ -401,6 +401,7 @@ def summarize(p, q, details):
         parameters=q.tolist(),
         fit_observable="Measured complex S22 on each fitted physical scan chord, with pointwise z along the straight thread.",
         reflection_preprocessing="none",
+        geometry_refitted=bool(details.get("geometry_refitted", False)),
         fit_threads=list(p.fit_threads),
         held_out_threads=[t for t in range(4) if t not in p.fit_threads],
         geometry_frequency_count=int(sum(p.eligible)),
@@ -453,6 +454,7 @@ def summarize(p, q, details):
     arr = dict(
         frequency_hz=p.f,
         reflection_preprocessing="none",
+        geometry_refitted=bool(details.get("geometry_refitted", False)),
         eligible=p.eligible,
         parameters=q,
         observed_S22=np.concatenate([l["y"] for l in p.lines], axis=1),
@@ -487,6 +489,9 @@ def summarize(p, q, details):
             "fi,ij,fj->f", s["reflected"].conj(), p.model.gram, s["reflected"]
         ).real,
     )
+    if details.get("geometry_refitted", False):
+        arr["geometry_fit_mask"] = p.eligible
+        arr["geometry_fit_reflection_preprocessing"] = "none"
     return rec, arr
 
 
