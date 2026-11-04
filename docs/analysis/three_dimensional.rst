@@ -133,107 +133,45 @@ nominal-geometry penalty in this 3D objective.
 5. Predict the bead response at every measured point
 ----------------------------------------------------
 
-The geometry fit compares measured complex S22 with a predicted bead-induced
-reflection plus the fitted backgrounds in Step 6. The inverse problem is
-recovering geometry; predicting the bead response for each trial geometry is
-the **forward measurement model**.
-
-From the paper to the implemented response
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-`Egge et al., JCAP 04 (2024) 005
-<https://doi.org/10.1088/1475-7516/2024/04/005>`_ relate the reflection change
-to the fields with and without the bead. Starting from Eq. (3.1) of the
-`arXiv PDF <https://arxiv.org/pdf/2311.13359#page=6>`_, write
+The bead-response formula is Eq. (5.6) of
+`Egge et al., JCAP 04 (2024) 005 <https://arxiv.org/pdf/2311.13359#page=12>`_.
+Its field-dependent part is
 
 .. math::
 
-   \Delta\Gamma=-iC_b\mathcal Q,\qquad
-   C_b=\frac{\epsilon_0\omega\alpha_0}{4P_{\mathrm{in}}},\qquad
-   \mathcal Q=\frac{\epsilon_b-1}{\alpha_0}
-       \int_{V_b}\mathbf E_b\cdot\mathbf E\,dV,
+   \delta_e\left(A_+^2e^{-2ikz}+A_-^2e^{+2ikz}\right)
+      +2\delta_c A_+A_-.
 
-.. math::
-
-   \alpha_0=4\pi r_b^3\frac{\epsilon_b-1}{\epsilon_b+2},\qquad
-   \omega=2\pi\nu.
-
-Here :math:`\mathbf E_b` is the field inside the bead and :math:`\mathbf E`
-is the field without it. This definition of :math:`\alpha_0` has units of
-volume, so the SI prefactor includes :math:`\epsilon_0` explicitly.
-
-The sphere response is linear in the exciting field. Expanding the bilinear
-integral for two counterpropagating waves therefore gives two self terms and
-one cross term, as in the paper's Eq. (5.6). At the bead centre, the propagation
-phases are already included in the local directional fields: for example,
-:math:`e_+=A_+e^{-ikz}` and :math:`e_-=A_-e^{+ikz}` give
-:math:`e_+^2=A_+^2e^{-2ikz}` and :math:`e_+e_-=A_+A_-`.
-Using the Mie factors in the repository's bead-response convention,
+The exponential factors describe propagation to the bead position. Writing
+local wave amplitudes as :math:`e_+=A_+e^{-ikz}` and
+:math:`e_-=A_-e^{+ikz}` turns these terms into
 
 .. math::
 
    Q=\delta_e(e_+^2+e_-^2)+2\delta_c e_+e_-.
 
-The self and cross factors are computed by :codefile:`src/bead_response.py`;
-the 3D model applies this local two-wave approximation to its scalar fields.
-The solver and Mie calculation use opposite phasor conventions. The code sets
+The 3D model already supplies the local inward/outward fields, including their
+propagation phases. ``finite_bead_field`` in :codefile:`src/receive_field.py`
+converts them to the Mie-factor phasor convention using
 :math:`e_-=F_{\mathrm{inward}}^*` and
-:math:`e_+=F_{\mathrm{outward}}^*`. Conjugating fields and Mie factors together
-expresses the same response in the solver/recorded-reflection convention:
+:math:`e_+=F_{\mathrm{outward}}^*`, then evaluates :math:`Q` above.
+The factors :math:`\delta_e,\delta_c` come from the paper's Appendix B.
+
+Restoring the SI prefactor from the paper's Eq. (3.1), in the conventions
+used by the code, gives the simulated bead-induced reflection:
 
 .. math::
 
-   \mathcal Q=Q^*
-   =\delta_e^*(F_{\mathrm{inward}}^2+F_{\mathrm{outward}}^2)
-      +2\delta_c^*F_{\mathrm{inward}}F_{\mathrm{outward}}.
+   \boxed{t=\Delta\Gamma_{\mathrm{sim}}=(\kappa_b Q)^*},\qquad
+   \kappa_b=\frac{i\epsilon_0\omega\alpha_0}{4P_{\mathrm{in}}},\qquad
+   \alpha_0=4\pi r_b^3\frac{\epsilon_b-1}{\epsilon_b+2}.
 
-Substitution into the reflection relation above gives the exact form used by
-``finite_bead_field`` in :codefile:`src/receive_field.py` and ``evaluate`` in
-:codefile:`src/analysis_3d.py`:
-
-.. math::
-
-   \boxed{
-   t_{ji\nu}=\Delta\Gamma_{\mathrm{sim},ji\nu}
-      =-iC_bQ_{ji\nu}^*
-      =\bigl[\kappa_b(\nu)Q_{ji\nu}\bigr]^*,
-   \qquad \kappa_b=iC_b.}
-
-The implementation uses :math:`P_{\mathrm{in}}=1\,\mathrm W`. This rearranges
-the field--reflection relation to predict reflection from simulated fields;
-the common complex coefficient :math:`c_\nu` in Step 6 then scales that prediction.
-
-Why fit reflection instead of a reconstructed field?
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-In the point-bead limit, :math:`\delta_e=\delta_c=1`, so
-:math:`Q=(e_++e_-)^2` and a square root recovers the total field up to sign.
-For a finite bead,
-
-.. math::
-
-   Q=\delta_e E^2+2(\delta_c-\delta_e)e_+e_-,\qquad E=e_++e_-.
-
-Thus the measured response alone does not determine the unperturbed field:
-the incoming/outgoing mixture is also needed. If :math:`B_j` denotes the affine
-background, the alternative measurement-to-field inverse would be
-
-.. math::
-
-   E_{\mathrm{eff,meas}}=\pm\sqrt{\frac{(\Gamma-B_j)^*}{\kappa_b}},\qquad
-   E_{\mathrm{eff,model}}^2=\frac{(c_\nu t)^*}{\kappa_b}=c_\nu^*Q.
-
-Even with unit normalization this recovers :math:`\pm\sqrt Q`, a finite-bead
-field proxy. Correcting it to the unperturbed field requires model information;
-the background must also be known or fitted. The field-proxy plots display
-the magnitude of this quantity.
-
-Fitting S22 also avoids square-root branch choices, nonlinear noise propagation
-near field nodes and a separate background subtraction before fitting. A
-field-space comparison is possible with consistent bead response, branches and
-uncertainties; it adds no information. The current fit therefore retains measured
-S22, with no empirical reflection-template correction, and fits its affine
-backgrounds jointly with the physical response.
+Here :math:`\omega=2\pi\nu` and :math:`P_{\mathrm{in}}=1\,\mathrm W`.
+The conjugations convert between the solver, Mie and recorded-S22 phasor
+conventions; :math:`\epsilon_0` is explicit because this :math:`\alpha_0`
+has units of volume. This is exactly ``np.conj(self.kappa[:, None] * Q)``
+in :codefile:`src/analysis_3d.py`. Step 6 fits its common complex scale and
+adds the affine backgrounds to compare with measured S22.
 
 6. Profile the backgrounds and common complex scale
 ---------------------------------------------------
