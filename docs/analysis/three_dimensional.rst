@@ -20,12 +20,18 @@ i on thread j. Retain frequencies in
 2. Select the geometry-fit frequencies
 --------------------------------------
 
-Preliminary fits to each measured chord use dimensionless
-:math:`u=s/(0.1\,\mathrm m)` and
+For each thread, :math:`s` is the signed distance along the scan, measured
+from its recorded midpoint. Define the dimensionless position
+:math:`u=s/(0.1\,\mathrm m)`; its value at scan point i is
+:math:`u_i=s_i/(0.1\,\mathrm m)`. Preliminary fits to each measured chord use
 
 .. math::
 
    \Gamma(u,\nu)=b_0+b_1u+A\exp\{[-2/w^2+i\eta](u-u_c)^2\}.
+
+Here :math:`u_c` is the profile centre, :math:`w` its width parameter and
+:math:`\eta` the quadratic phase coefficient. The complex coefficients
+:math:`b_0,b_1` describe an affine background and :math:`A` the profile amplitude.
 
 For each trial :math:`(u_c,w,\eta)`, solve :math:`(b_0,b_1,A)` by complex least
 squares, then optimize the real/imaginary residuals. Bounds are
@@ -92,14 +98,6 @@ Recorded x/y stay fixed. A/B are the retained scan endpoints, not mechanical
 supports; paths are straight, without sag. There are **17** shared parameters:
 three disk shifts, six disk slopes and eight endpoint shifts.
 
-Central gap changes are bounded by ±2 mm, slope components by ±5 mrad and
-endpoint shifts by ±2 mm. Continuous-path constraints require at least one
-bead radius of normal clearance from neighboring face planes and the mirror.
-Face-plane checks cover the chord clipped to radius :math:`R+r_b`, where
-:math:`R=150\,\mathrm{mm}` is the disk radius and
-:math:`r_b=1.465\,\mathrm{mm}` the bead radius; they are conservative near
-the finite disk rim.
-
 5. Predict the bead response at every measured point
 ----------------------------------------------------
 
@@ -143,28 +141,75 @@ conventions; :math:`\epsilon_0` is explicit because this :math:`\alpha_0`
 has units of volume. Step 6 fits the common complex scale and adds the affine
 backgrounds to compare with measured S22.
 
-6. Profile the backgrounds and common complex scale
----------------------------------------------------
+6. Fit the geometry, backgrounds and common complex scale
+---------------------------------------------------------
 
-For each thread, let :math:`X_j=[1,u]` and
-:math:`P_j=I-X_jX_j^+`, where + denotes the pseudoinverse. At every frequency:
-
-.. math::
-
-   c_{\nu}=\frac{\sum_j(P_jt_{j\nu})^\dagger(P_j\Gamma_{j\nu})}
-                  {\sum_j\|P_jt_{j\nu}\|^2},\qquad
-   b_{j\nu}=X_j^+(\Gamma_{j\nu}-c_{\nu}t_{j\nu}),\qquad
-   \widehat\Gamma_{j\nu}=c_{\nu}t_{j\nu}+X_jb_{j\nu}.
-
-One :math:`c_{\nu}` is shared by all four threads. The baseline-subtracted signal
-and its fitted prediction are
+At a fixed trial geometry and frequency :math:`\nu`, collect each thread's
+:math:`n_j` measured values and simulated bead responses from Step 5 into
+vectors :math:`\Gamma_{j\nu},t_{j\nu}\in\mathbb C^{n_j}`. The same scalar
+positions :math:`u_{ji}` as in Step 2 form the vector :math:`\mathbf u_j`
+and the :math:`n_j\times2` background matrix
 
 .. math::
 
+   X_j=[\mathbf1,\mathbf u_j]
+      =\begin{pmatrix}
+         1 & u_{j1}\\
+         \vdots & \vdots\\
+         1 & u_{jn_j}
+       \end{pmatrix},\qquad
+   b_{j\nu}=\begin{pmatrix}b_{0,j\nu}\\b_{1,j\nu}\end{pmatrix}.
+
+Thus :math:`X_jb_{j\nu}` is a constant plus a linear trend along the thread.
+Fit this background and one common complex scale :math:`c_\nu` by minimizing
+
+.. math::
+
+   S_\nu(c_\nu,\{b_{j\nu}\})
+      =\sum_j\|\Gamma_{j\nu}-c_\nu t_{j\nu}-X_jb_{j\nu}\|^2.
+
+All sums over j include **T0–T3**. For fixed :math:`c_\nu`, linear least
+squares gives
+
+.. math::
+
+   b_{j\nu}=X_j^+(\Gamma_{j\nu}-c_\nu t_{j\nu}),\qquad
+   P_j=I-X_jX_j^+,
+
+where + denotes the pseudoinverse and :math:`I` the :math:`n_j\times n_j`
+identity matrix. The projection :math:`P_j` removes the best-fitting affine
+background, leaving the reduced objective
+
+.. math::
+
+   S_\nu(c_\nu)=\sum_j\|P_j\Gamma_{j\nu}-c_\nu P_jt_{j\nu}\|^2.
+
+Minimizing with respect to the complex scale gives the normal equation and
+its solution:
+
+.. math::
+
+   \sum_j(P_jt_{j\nu})^\dagger
+      (P_j\Gamma_{j\nu}-c_\nu P_jt_{j\nu})=0,
+
+.. math::
+
+   c_\nu=\frac{\sum_j(P_jt_{j\nu})^\dagger(P_j\Gamma_{j\nu})}
+                  {\sum_j\|P_jt_{j\nu}\|^2}.
+
+Here :math:`\dagger` denotes the conjugate transpose. Substituting this scale
+into the background solution gives the fitted response and the
+baseline-subtracted signal:
+
+.. math::
+
+   \widehat\Gamma_{j\nu}=c_\nu t_{j\nu}+X_jb_{j\nu},\qquad
    \Delta\Gamma_{j\nu}=\Gamma_{j\nu}-X_jb_{j\nu},\qquad
-   \widehat{\Delta\Gamma}_{j\nu}=c_{\nu}t_{j\nu}.
+   \widehat{\Delta\Gamma}_{j\nu}=c_\nu t_{j\nu}.
 
-Geometry minimizes
+For every trial geometry, use these analytical solutions for the scale and
+backgrounds. Choose the geometry by minimizing the normalized residual
+averaged over the selected frequencies:
 
 .. math::
 
@@ -173,10 +218,17 @@ Geometry minimizes
    \mathcal L=\frac1{|\mathcal F_{\mathrm{fit}}|}
                      \sum_{\nu\in\mathcal F_{\mathrm{fit}}}r_{\nu}^2.
 
-Minimize :math:`\mathcal L` over geometries satisfying the constraints in
-Step 4. Frequencies have equal normalized weight; samples within a frequency
-have equal absolute weight. Individual-thread residuals use the same
-:math:`c_\nu`.
+Frequencies have equal normalized weight; samples within a frequency have
+equal absolute weight. Individual-thread residuals use the same :math:`c_\nu`.
+
+Minimize :math:`\mathcal L` subject to the following bounds and clearance
+constraints. Central gap changes are bounded by ±2 mm, slope components by
+±5 mrad and endpoint shifts by ±2 mm. Continuous-path constraints require at
+least one bead radius of normal clearance from neighboring face planes and
+the mirror. Face-plane checks cover the chord clipped to radius
+:math:`R+r_b`, where :math:`R=150\,\mathrm{mm}` is the disk radius and
+:math:`r_b=1.465\,\mathrm{mm}` the bead radius; they are conservative near
+the finite disk rim.
 
 7. Calculate boost and diagnostic fields
 ----------------------------------------
