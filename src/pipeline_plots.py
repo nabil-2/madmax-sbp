@@ -360,26 +360,37 @@ def plot_raw_traces(
 
 def plot_raw_magnitude(
     data, frequency_GHz=20.825, *,
-    title="Raw reflection magnitude · {frequency_GHz:.4f} GHz",
-    panel_title_template="{thread_name} · {z_mm:.3f} mm from mirror",
-    x_label="Distance from calibrated start [cm]",
+    title="Raw reflection magnitude · {frequency_GHz:.3f} GHz",
+    panel_title_template="Subthread {thread_index}",
+    x_label="Bead position along thread [mm]",
     y_label=r"$20\log_{10}|\Gamma|$ [dB]",
 ):
-    """One trace per thread, with a common dB range on the four panels."""
+    """All raw samples, centred coordinates and a shared dB range, as in the report."""
     k = data.frequency_index(frequency_GHz)
-    figure, axes = _grid(len(_thread_indices(data)))
-    lower, upper = np.inf, -np.inf
-    for axis, thread in zip(axes, _thread_indices(data)):
-        position, traces = _deduplicated_line(data.lines[thread])
-        magnitude = 20 * np.log10(np.maximum(abs(traces[:, k]), 1e-15))
-        axis.plot(position * 100, magnitude)
+    figure, axes = plt.subplots(2, 2, figsize=(9, 6.2), layout="constrained",
+                               sharex=True, sharey=True)
+    colors = ("#3366AA", "#DD8844", "#228877", "#8855AA")
+    lower, upper, extent = np.inf, -np.inf, 0.0
+    for axis, thread, color in zip(axes.flat, _thread_indices(data), colors):
+        line = data.lines[thread]
+        position = (line.position_m-(line.position_m.min()+line.position_m.max())/2)*1000
+        magnitude = 20*np.log10(abs(line.traces[:, k]))
+        if not np.all(np.isfinite(magnitude)):
+            raise ValueError("Raw reflection magnitudes must be positive and finite.")
+        order = np.argsort(position)
+        axis.plot(position[order], magnitude[order], "-o", lw=1.25, ms=3, color=color)
         lower, upper = min(lower, magnitude.min()), max(upper, magnitude.max())
+        extent = max(extent, np.max(abs(position)))
         axis.set(title=_thread_title(data, thread, panel_title_template),
                  xlabel=render_text(x_label), ylabel=render_text(y_label))
-    margin = max((upper-lower)*0.06, 0.02)
-    for axis in axes:
-        axis.set_ylim(lower-margin, upper+margin)
-    figure.suptitle(render_text(title, frequency_GHz=data.frequencies_Hz[k]/1e9))
+        axis.tick_params(axis="y", labelleft=True)
+        axis.ticklabel_format(axis="y", style="plain", useOffset=False)
+        axis.grid(alpha=0.18)
+    margin = max(0.25, (upper-lower)*0.05)
+    limit = max(10, np.ceil(extent/10)*10)
+    for axis in axes.flat:
+        axis.set(ylim=(np.floor(lower-margin), np.ceil(upper+margin)), xlim=(-limit, limit))
+    figure.suptitle(render_text(title, frequency_GHz=data.frequencies_Hz[k]/1e9), fontsize=15)
     return figure
 
 

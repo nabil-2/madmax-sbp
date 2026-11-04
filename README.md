@@ -319,7 +319,7 @@ in parallel and eight Julia threads per case. Its local run manifest is
 
 ## 3D analysis with disk and thread tilts
 
-Open [sbp_3d_analysis.ipynb](sbp_3d_analysis.ipynb). Its **29 rendered plots** include
+Open [sbp_3d_analysis.ipynb](sbp_3d_analysis.ipynb). Its **26 rendered plots** include
 boost curves, raw measurement spectra and dB traces, the actual incident-beam profile,
 frequency-selection diagnostics, complex chord fits and backgrounds, field
 spectra/maps, nominal/fitted geometry, spatial residuals and the full-pull
