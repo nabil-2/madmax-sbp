@@ -50,30 +50,43 @@ magnitude profiles within :math:`\mathcal F`. At each :math:`\nu`:
 
    g(\mathbf r)=\sum_{\ell=1}^{6}A_\ell
        e^{-|\mathbf r-\mathbf r_\ell|^2/w_\ell^2},\qquad
-   N^2=\sum_{\ell,m}A_\ell A_m
-      \frac{\pi w_\ell^2w_m^2}{w_\ell^2+w_m^2}
-      e^{-|\mathbf r_\ell-\mathbf r_m|^2/(w_\ell^2+w_m^2)}.
+   N=\sqrt{\int_{\mathbb R^2}|g(\mathbf r)|^2\,\mathrm d^2\mathbf r}.
 
 Set :math:`E_{\mathrm{in}}=\sqrt{2Z_0P_{\mathrm{in}}}\,g/N`, with
 :math:`P_{\mathrm{in}}=1\,\mathrm W` over the whole transverse plane.
+Here :math:`Z_0=\sqrt{\mu_0/\epsilon_0}\simeq376.7303\,\Omega` is the
+vacuum wave impedance.
 Assume flat phase at the outer reference face and hold the beam parameters
 fixed during the geometry fit.
 
 4. Parameterize disks and actual bead paths
 -------------------------------------------
 
-For disk d and thread j:
+Use transverse coordinates :math:`x,y` and axial coordinate :math:`z`, with
+:math:`z=0` at the mirror and positive toward the antenna. Index :math:`d`
+labels the three disks, :math:`j` the four threads and :math:`i` a scan point.
 
 .. math::
 
    z_{d,\mathrm{near}}(x,y)=z_{d0}+\Delta z_d+s_{dx}x+s_{dy}y,\qquad
    z_{d,\mathrm{far}}=z_{d,\mathrm{near}}+1\,\mathrm{mm},
 
+Here :math:`z_{d0}` is the nominal near-face position at :math:`x=y=0`,
+:math:`\Delta z_d` its fitted axial shift, and :math:`s_{dx},s_{dy}` the
+dimensionless face slopes along x and y (approximately the tilt angles in
+radians). Near/far denote the faces closer to/farther from the mirror.
+
 .. math::
 
    v_i=\frac{s_i-s_{\min}}{s_{\max}-s_{\min}},\qquad
    z_{ji}=(1-v_i)(z_{j0}+\Delta z_{jA})+
                     v_i(z_{j0}+\Delta z_{jB}).
+
+The signed distance :math:`s_i` runs along each thread's scan, with retained
+limits :math:`s_{\min},s_{\max}`; :math:`v_i` is its fractional position
+from endpoint A (0) to B (1). The nominal thread height is :math:`z_{j0}`,
+and :math:`\Delta z_{jA},\Delta z_{jB}` are its independently fitted endpoint
+shifts, giving the bead's axial position :math:`z_{ji}`.
 
 Recorded x/y stay fixed. A/B are the retained scan endpoints, not mechanical
 supports; paths are straight, without sag. There are **17** shared parameters:
@@ -82,8 +95,10 @@ three disk shifts, six disk slopes and eight endpoint shifts.
 Central gap changes are bounded by ±2 mm, slope components by ±5 mrad and
 endpoint shifts by ±2 mm. Continuous-path constraints require at least one
 bead radius of normal clearance from neighboring face planes and the mirror.
-Face-plane checks cover the chord clipped to radius :math:`R+r_b`; they are
-conservative near the finite disk rim.
+Face-plane checks cover the chord clipped to radius :math:`R+r_b`, where
+:math:`R=150\,\mathrm{mm}` is the disk radius and
+:math:`r_b=1.465\,\mathrm{mm}` the bead radius; they are conservative near
+the finite disk rim.
 
 5. Predict the bead response at every measured point
 ----------------------------------------------------
