@@ -1049,7 +1049,7 @@ def reference_field_figure(
         axis.plot(
             reference["z_m"] * 1000,
             abs(reference[reference_key][kr]),
-            "--",
+            "--" if axis is axes[0] else "-",
             color="#42484D",
             lw=1.6,
             label=render_text(full_label, **context),
