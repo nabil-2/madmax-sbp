@@ -1,14 +1,16 @@
-"""Reconstruct the saved heterogeneous MADBead longitudinal reference model.
+"""Evaluate MADBead fields from a supplied parameter dictionary for plotting.
+
+This evaluator reads no measurement or reference files. Both spider and
+full-reference plots supply their own independently obtained parameters.
 
 The input parameters are central values from ``p_final_ν`` (or one saved Monte
 Carlo draw), not a new fit. ``E_0`` scales a transverse field integral, so field
 outputs have units V m and the longitudinal integral has units V m².
 
 This preserves MADBead/field_1D_fit.jl's conjugated backward phase inside lossy
-dielectrics for reproducibility. The newer fit_1D model instead uses reciprocal
-phase there. Both agree in vacuum and in lossless dielectrics. The legacy
-longitudinal integral is multiplied by -i to use fit_1D's physical convention;
-its magnitude is unchanged. A model evaluated at mean parameters must not
+dielectrics for reproducibility. The 1D fitting backend now uses that original
+Julia implementation directly. This plotting helper reports the longitudinal
+integral multiplied by -i; its magnitude is unchanged. A model at mean parameters must not
 replace the archive's Monte Carlo-derived boost or uncertainty.
 """
 

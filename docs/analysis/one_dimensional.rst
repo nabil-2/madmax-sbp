@@ -1,161 +1,168 @@
 1D analysis
 ===========
 
-**Raw line → radial field → transverse integral → longitudinal fit → boost.**
+**Spider traces → transverse integrals → geometry extension → 1D results.**
 
 Notebook: :notebook:`sbp_1d_analysis.ipynb`.
-Field reconstruction: :codefile:`src/sbp_analysis.py`.
-Fitting model: the planar multilayer 1D booster in :codefile:`src/fit_1D.py`.
+This page explains the SBP preparation and geometry extensions. The
+`existing 1D analysis pipeline
+<https://github.com/nabil-2/spider-bead-pull-ai/blob/main/5_Analysis_Boostfactor_Determination_Spider_ET.ipynb>`_
+already covers longitudinal amplitude fitting, the finite-bead response,
+longitudinal field integration, boost calculation and Monte Carlo uncertainty
+propagation. Those operations are treated as a **black box** here.
 
-The code now discards frequencies outside **20–22 GHz before preprocessing**.
-Existing saved fits and rendered figures still come from the earlier 12–22 GHz
-analysis; they have not been recomputed. Old out-of-band products are rejected
-when loading results for the updated pipeline.
+The backend uses functions copied from that notebook and the MADBead routines
+it calls: :codefile:`src/existing_1d_functions.jl`, :codefile:`src/run_1d.jl`
+and ``src/madbead/``. :codefile:`src/fit_1D.py` adapts numeric inputs and outputs.
+Our raw-to-transverse-integral logic stays in :codefile:`src/sbp_analysis.py`.
 
-1. Read traces and subtract the reference
------------------------------------------
+Raw data are filtered to **20–22 GHz before preprocessing**. Existing figures
+still come from the previous backend and frequency range; the revised analysis
+has not been run.
 
-Read only the raw trace columns with :math:`20\leq\nu/\mathrm{GHz}\leq22`.
-All subsequent background estimation, centre finding, phase unwrapping,
-integration and fitting use only these frequencies.
+1. Prepare the spider traces
+----------------------------
 
-Bind scan-log positions to HDF5 traces by ``trace_index``; average repeated
-physical positions before interpolation. For each calibrated thread of length L,
-fit a complex baseline to its first/last 25 mm:
+Code: :codefile:`src/analysis_band.py`, :codefile:`src/sbp_analysis.py`.
+
+Keep only raw columns satisfying :math:`20\leq\nu/\mathrm{GHz}\leq22`, then join
+calibrated positions to traces by ``trace_index``. Average repeated physical
+positions. For each thread of length L, estimate the complex background from its
+first/last 25 mm:
 
 .. math::
 
    (b_0,b_1)=\arg\min_{b_0,b_1}\sum_{s\in\mathrm{edges}}
-     |\Gamma(s,\nu)-b_0-b_1s/L|^2,\qquad
+      |\Gamma(s,\nu)-b_0-b_1s/L|^2,\qquad
    \Delta\Gamma(s,\nu)=\Gamma(s,\nu)-b_0-b_1s/L.
 
-The code sets :math:`\Delta\Gamma` to zero in those reference regions. This radial pipeline does
-not use verification's time gate or the 3D drift-template correction.
+Set :math:`\Delta\Gamma=0` in those edge windows. This preparation uses neither
+time gating nor the 3D drift correction.
 
-2. Find the centre and fold the measured diameter
--------------------------------------------------
+2. Reconstruct the transverse integrals
+---------------------------------------
 
-Use linear interpolation, zero outside the measured interval, and one shared
-centre per thread across the frequencies supplied to reconstruction:
+Fit one centre per thread, shared across the retained frequencies, by maximizing
+complex reflection symmetry:
 
 .. math::
 
    s_c=\arg\max_c
-   \frac{\int\sum_{\nu}\operatorname{Re}[\Delta\Gamma(s,\nu)^*\Delta\Gamma(2c-s,\nu)]\,ds}
-        {\int\sum_{\nu}|\Delta\Gamma(s,\nu)|^2\,ds}.
+   \frac{\int\sum_\nu\operatorname{Re}
+      [\Delta\Gamma(s,\nu)^*\Delta\Gamma(2c-s,\nu)]\,ds}
+        {\int\sum_\nu|\Delta\Gamma(s,\nu)|^2\,ds}.
 
-The implementation searches 129 candidate centres and refines the best bracket.
-Keep :math:`R_{\mathrm{int}}=\min(s_c-25\,\mathrm{mm},
-L-25\,\mathrm{mm}-s_c)`, then fold:
-
-.. math::
-
-   \Delta\Gamma_r(r,\nu)=\tfrac12[\Delta\Gamma(s_c-r,\nu)+\Delta\Gamma(s_c+r,\nu)],
-   \qquad 0\leq r\leq R_{\mathrm{int}}.
-
-The radial grid includes measured distances from the centre, zero and the final
-radius. The last folded value is forced to zero where one half enters the
-off-beam reference. This is a radial continuation of measured samples, not a
-transverse Gaussian or Bessel fit.
-
-3. Convert to field and integrate
----------------------------------
-
-Unwrap :math:`\theta=\arg \Delta\Gamma_r` in radius, then align the centre's branch across
-frequency. Apply the conversion factor :math:`C_b(\nu)` supplied by the
-black-box bead-response calculation:
+Use linear interpolation with zero extension. Fold the measured diameter about
+that centre, assuming rotational symmetry of its complex response:
 
 .. math::
 
-   E_{\mathrm{conv}}(r,\nu)=C_b(\nu)
-   \sqrt{|\Delta\Gamma_r|}\,e^{i\theta/2},\qquad
-   E_T(\nu)=2\pi\int_0^{R_{\mathrm{int}}}rE_{\mathrm{conv}}(r,\nu)\,dr.
+   \Delta\Gamma_r(r,\nu)=\tfrac12
+       [\Delta\Gamma(s_c-r,\nu)+\Delta\Gamma(s_c+r,\nu)],\qquad
+   R_{\mathrm{int}}=\min(s_c-25\,\mathrm{mm},L-25\,\mathrm{mm}-s_c).
 
-The integral is trapezoidal on the radial grid. Its phase branch is retained
-for diagnostics; the longitudinal fit uses :math:`y_{j\nu}=|E_T(z_j,\nu)|`.
-The reconstruction file is ``integrated_fields.npz``.
+Unwrap :math:`\theta=\arg\Delta\Gamma_r` in radius and align its centre branch
+across frequency. Apply the bead conversion as a black box and integrate:
 
-For the bead response, see J. Egge et al., *Experimental determination of
-axion signal power of dish antennas and dielectric haloscopes using the
-reciprocity approach*, `JCAP 04 (2024) 005
+.. math::
+
+   E_{\mathrm{conv}}=C_b(\nu)\sqrt{|\Delta\Gamma_r|}\,e^{i\theta/2},\qquad
+   E_T(z_j,\nu)=2\pi\int_0^{R_{\mathrm{int}}}rE_{\mathrm{conv}}(r,\nu)\,dr.
+
+The integration uses the measured radial grid and the trapezoidal rule; its last
+sample is forced to zero at the off-beam boundary. No Gaussian or Bessel profile
+is fitted. The result is ``integrated_fields.npz``, with T0–T3, their z coordinates
+and frequencies. The longitudinal fitting input is :math:`y_{j\nu}=|E_T(z_j,\nu)|`.
+
+For the bead response, see J. Egge et al., *Experimental determination of axion
+signal power of dish antennas and dielectric haloscopes using the reciprocity
+approach*, `JCAP 04 (2024) 005
 <https://doi.org/10.1088/1475-7516/2024/04/005>`_, Section 3 and Appendix B.
 
-4. Booster-model interface
---------------------------
+3. Add the geometry adjustment cases
+------------------------------------
 
-The 1D booster model is treated as a **black box**. The fit supplies its trial
-geometry and the measurement frequencies; the model supplies the responses
-needed for comparison and boost calculation.
+**Disk-gap fitting already exists in the existing 1D analysis pipeline.** The
+SBP extension controls which geometry coordinates are free, adds thread-z
+adjustments, and shares the geometry across the entire 20–22 GHz band.
 
-.. list-table:: Inputs and outputs
+Let :math:`g=(d_1,d_2,d_3,z_0,z_1,z_2,z_3)`, where d denotes clear air gaps and
+z denotes thread positions relative to the mirror. These start from the measured
+nominal geometry in :doc:`index`.
+
+.. list-table:: Four independent geometry cases
    :header-rows: 1
-   :widths: 30 70
-
-   * - Quantity
-     - Meaning
-   * - Inputs
-     - Frequency :math:`\nu`, clear disk gaps, thickness/radius, disk material/loss,
-       mirror conductivity, bead parameters and thread z coordinates
-   * - Field shape
-     - Unit-amplitude complex longitudinal shape :math:`e(z,\nu)`
-   * - Measurement response
-     - Finite-bead magnitude :math:`m_{j\nu}` at each measurement plane
-   * - Overlap
-     - Longitudinal overlap :math:`I(\nu)` used to calculate boost, including
-       the model's mirror and exterior contributions
-
-The finite-bead response is treated as a separate black box.
-The whole bead must lie in vacuum. A fitted amplitude scales the returned
-shape and overlap; it is the measurement that sets their normalization.
-Internal propagation, interface relations and overlap evaluation are left to
-:codefile:`src/fit_1D.py`.
-
-5. Fit amplitudes and geometry
-------------------------------
-
-For each trial geometry g, eliminate one nonnegative amplitude per frequency:
-
-.. math::
-
-   a_{\nu}=\frac{\sum_j m_{j\nu}(g)y_{j\nu}}{\sum_jm_{j\nu}(g)^2},\qquad
-   \mathcal L(g)=\frac1{N_{\nu}}\sum_{\nu}
-      \frac{\sum_j[a_{\nu}m_{j\nu}(g)-y_{j\nu}]^2}{\sum_jy_{j\nu}^2}
-      +\lambda\sum_k\left(\frac{g_k-g_{k0}}{b_k}\right)^2.
-
-Zero-signal bins do not constrain geometry. Bounded least squares adjusts the
-selected geometry variables; default bounds :math:`b_k=0.5` mm and
-:math:`\lambda=0.001` express a preference for nominal positions, not a measured
-uncertainty. Bounds must keep every bead in its original vacuum region.
-
-.. list-table:: Four independent fits
-   :header-rows: 1
+   :widths: 20 60 20
 
    * - Notebook value
      - Free geometry
+     - Number
    * - ``fixed``
      - None
+     - 0
    * - ``gaps``
-     - Three clear disk gaps
+     - Three disk gaps
+     - 3
    * - ``positions``
-     - Four thread z coordinates
+     - Four thread z coordinates, T0–T3
+     - 4
    * - ``both``
-     - Gaps and thread z
+     - Disk gaps and thread z coordinates
+     - 7
 
-All geometry parameters are shared across the fitted band. This 1D model has no
-disk or thread tilt parameters; those belong to :doc:`three_dimensional`.
+In the existing notebook, the gaps are named ``d_v_1``–``d_v_3``. In the current
+Python adapter they are supplied as ``ModelConfig.gap_widths_m``; thread positions
+are supplied as ``z_from_mirror_m``. Thus changing a gap updates the disk surfaces,
+while changing a thread z updates where its measured integral is compared with
+the model. Disk and thread tilts are outside this 1D extension.
 
-6. Calculate boost from the returned overlap
---------------------------------------------
-
-Use the returned overlap :math:`I(\nu)` and the fitted amplitude :math:`a_{\nu}`:
+For each trial g, the 1D response calculation fits its frequency-dependent
+amplitude and returns predicted measurement magnitudes :math:`\widehat y_{j\nu}(g)`.
+The geometry driver minimizes
 
 .. math::
 
-   \boxed{\beta^2(\nu)=\frac{\epsilon_0\omega^2}
-       {8c_0\,\pi R^2P_{\mathrm{in}}}\,|a_{\nu} I(\nu)|^2}.
+   \mathcal L_{\mathrm{geom}}(g)=\frac1{N_\nu}\sum_\nu
+     \frac{\sum_{j=0}^3[\widehat y_{j\nu}(g)-y_{j\nu}]^2}
+          {\sum_{j=0}^3y_{j\nu}^2}
+     +\lambda\sum_{k\in\mathrm{free}}
+       \left(\frac{g_k-g_{k0}}{b_k}\right)^2.
 
-The plotted relative residual is
-:math:`\|a_{\nu}m_{\nu}-y_{\nu}\|_2/\|y_{\nu}\|_2` across threads. Saved fit NPZ files contain
-amplitudes, fitted geometry, model fields, overlap, boost and residuals.
-This fitter does not calculate statistical uncertainty; geometry-bound lines
-and differences between geometry cases are not confidence bands.
+Bounded least squares starts at the nominal geometry. Defaults are
+:math:`|g_k-g_{k0}|\leq b_k=0.5` mm and :math:`\lambda=0.001`.
+The penalty expresses a preference for measured positions, not an uncertainty.
+Zero-signal frequencies do not constrain geometry. Clearance checks keep every
+whole bead in its original vacuum region over the allowed geometry range.
+
+The final geometry is evaluated to obtain the returned fields and boost curve.
+The amplitude, field-integration and boost-conversion mathematics remain inside
+the black box. Only spider measurements and nominal setup inputs enter this fit;
+the full bead-pull reference is used for subsequent comparisons.
+
+4. Existing-pipeline outputs and SBP adaptations
+------------------------------------------------
+
+The existing pipeline rejects frequency outliers, runs the Monte Carlo amplitude
+fits, integrates the model fields and returns boost values and their saved
+uncertainties. These calculations stay inside the black box. Defaults inherited
+from the notebook are **100 draws**, a **5% assumed ET error**, and its bead and
+material input uncertainties.
+
+Only the adapters needed for the measured spider scan are changed:
+
+* The input is our four-thread ET dataset, rather than a sweep of reduced-grid
+  configurations. No full-reference measurements enter the spider fit.
+* The shared geometry optimization in step 3 replaces the notebook's
+  per-frequency disk-gap optimization. At the fitted geometry, the original
+  Monte Carlo routine fits the amplitude for each retained frequency.
+* The inapplicable too-few-z prior fallback is omitted. Full-grid configuration
+  ranking is also omitted; the full reference is compared after fitting.
+
+The supplied input uncertainties are propagated by the existing Monte Carlo
+routine. The shared geometry optimizer does not provide an additional fitted
+covariance; its bounds and penalty are not uncertainty estimates.
+
+The numeric outputs keep the retained frequencies, fitted parameters, fields,
+boost values/errors, Monte Carlo draws and rejected-frequency masks. Plots match
+frequencies explicitly after rejection. Their labels remain editable in the
+notebook, and no normalized shape-comparison plots are generated.

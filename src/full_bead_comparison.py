@@ -121,9 +121,9 @@ def load_full_bead(path=DATA_DIR / "full_bead_pull/result_bf_21_0.jld2", *, cach
     return full
 
 
-def common_frequency_indices(data, full):
+def common_frequency_indices(data, full, geometry="both"):
     """Match actual acquired bins within one Hz; never interpolate boost values."""
-    frequency = np.asarray(data.frequencies_Hz)
+    frequency = np.asarray(_plots._fitplot_result(data, geometry)["frequencies_Hz"])
     full_frequency = full.frequencies_Hz
     right = np.searchsorted(full_frequency, frequency).clip(0, len(full_frequency)-1)
     left = (right-1).clip(0)
@@ -134,13 +134,14 @@ def common_frequency_indices(data, full):
     return np.flatnonzero(selected), nearest[selected]
 
 
-def matched_frequency(data, full, frequency_GHz=21.0):
+def matched_frequency(data, full, frequency_GHz=21.0, geometry="both"):
     """Indices of a common saved frequency, nearest the requested GHz value."""
     requested = float(frequency_GHz)*1e9
     if not np.isfinite(requested):
         raise ValueError("frequency_GHz must be finite.")
-    spider, reference = common_frequency_indices(data, full)
-    index = int(np.argmin(abs(data.frequencies_Hz[spider]-requested)))
+    spider, reference = common_frequency_indices(data, full, geometry)
+    frequency = _plots._fitplot_result(data, geometry)["frequencies_Hz"]
+    index = int(np.argmin(abs(frequency[spider]-requested)))
     return int(spider[index]), int(reference[index])
 
 
@@ -157,15 +158,20 @@ def comparison_summary(data, full, frequency_GHz=21.0, *, compact=False):
     from IPython.display import Markdown, display
     si, fi = matched_frequency(data, full, frequency_GHz)
     spider_indices, full_indices = common_frequency_indices(data, full)
-    frequency = data.frequencies_Hz[si]
+    frequency = data.fits_1d["both"]["frequencies_Hz"][si]
     rows = []
     for mode, fit in data.fits_1d.items():
         selected = (fit["frequencies_Hz"] >= full.frequencies_Hz.min()) & (fit["frequencies_Hz"] <= full.frequencies_Hz.max())
         bins = np.flatnonzero(selected)
         peak = bins[np.argmax(fit["beta2"][bins])]
-        measured = abs(fit["ET_measured"][:, si])
-        residual = np.linalg.norm(fit["ET_fitted_magnitude"][:, si]-measured)/np.linalg.norm(measured)
-        rows.append({"Result": f"Spider 1D · {mode}", "Saved β² at selected f": fit["beta2"][si],
+        matches = np.flatnonzero(abs(fit["frequencies_Hz"]-frequency) <= 1)
+        residual, boost = np.nan, np.nan
+        if len(matches):
+            index = int(matches[0])
+            measured = abs(fit["ET_measured"][:, index])
+            residual = np.linalg.norm(fit["ET_fitted_magnitude"][:, index]-measured)/np.linalg.norm(measured)
+            boost = fit["beta2"][index]
+        rows.append({"Result": f"Spider 1D · {mode}", "Saved β² at selected f": boost,
                      "Peak f in overlap [GHz]": fit["frequencies_Hz"][peak]/1e9,
                      "Saved peak β²": fit["beta2"][peak], "Magnitude residual [%]": residual*100,
                      "Measured z planes": len(data.fields["ET"])})
@@ -214,19 +220,23 @@ def plot_boost_comparison(
 ):
     """Full scan versus the 1D 'both' fit, styled like the 3D comparison.
 
-    Only the full scan has a saved uncertainty band; no 1D band is inferred.
+    The spider band, when present, is the existing pipeline's saved MC spread.
     """
     fit = _plots._fitplot_result(data, "both")
     select = (fit["frequencies_Hz"] >= 20e9) & (fit["frequencies_Hz"] <= 22e9)
     frequency, values = fit["frequencies_Hz"][select]/1e9, fit["beta2"][select]
+    spider_error = np.asarray(fit.get("beta2_error", np.zeros_like(fit["beta2"])))[select]
     figure, axis = plt.subplots(figsize=(6.5, 4.0), layout="constrained")
     axis.fill_between(full.frequencies_Hz/1e9, np.maximum(0, full.beta2-full.beta2_error),
                       full.beta2+full.beta2_error, color="#42484D", alpha=0.16, lw=0)
     axis.plot(full.frequencies_Hz/1e9, full.beta2, color="#42484D", ls="--", lw=1.6,
               label=render_text(full_curve_label))
     axis.plot(frequency, values, color="#AA3377", lw=1.8, label=render_text(spider_curve_label))
+    if "beta2_error" in fit:
+        axis.fill_between(frequency, np.maximum(0, values-spider_error), values+spider_error,
+                          color="#AA3377", alpha=0.24, lw=0)
     axis.set(xlabel=render_text(x_label), ylabel=render_text(y_label), title=render_text(title),
-             ylim=(0, 1.08*max(np.max(full.beta2+full.beta2_error), np.max(values))), xlim=(20, 22))
+             ylim=(0, 1.08*max(np.max(full.beta2+full.beta2_error), np.max(values+spider_error))), xlim=(20, 22))
     axis.legend(fontsize=8.5, loc="best")
     axis.grid(alpha=0.15)
     return figure
@@ -242,9 +252,9 @@ def _mask_bead_centres(values, z, edges, radius):
 
 
 def _profile_comparison(data, full, frequency_GHz, geometry):
-    si, fi = matched_frequency(data, full, frequency_GHz)
-    frequency = data.frequencies_Hz[si]
+    si, fi = matched_frequency(data, full, frequency_GHz, geometry)
     fit = _plots._fitplot_result(data, geometry)
+    frequency = fit["frequencies_Hz"][si]
     config = _plots._fitplot_config(fit)
     parameters = full.parameters_at(fi)
     reference_disks = disk_edges(parameters)
@@ -253,10 +263,9 @@ def _profile_comparison(data, full, frequency_GHz, geometry):
                   np.max(fit["z_from_mirror_m"]))+0.008
     z = np.linspace(0, maximum, 1400)
     reference = evaluate_full_model(frequency, z, parameters)
-    spider = _plots._fitplot_evaluate([frequency], z, config)
-    amplitude = fit["amplitude"][si]
+    spider = _plots._fitplot_evaluate_saved(fit, [frequency], z)
     reference_bead = _mask_bead_centres(reference.bead_magnitude[:, 0], z, reference_disks, parameters["r_b"])
-    spider_bead = _mask_bead_centres(spider.bead_magnitude[:, 0]*abs(amplitude), z, spider_disks, config.bead_diameter_m/2)
+    spider_bead = _mask_bead_centres(spider.bead_magnitude[:, 0], z, spider_disks, config.bead_diameter_m/2)
     return si, fi, frequency, fit, config, parameters, z, reference, spider, reference_bead, spider_bead
 
 
@@ -280,7 +289,7 @@ def plot_field_comparison(
     color = _plots._FIT_GEOMETRY_COLORS.get(geometry, "C0")
     full_measured, spider_measured = abs(full.ET[:, fi]), abs(fit["ET_measured"][:, si])
     full_true = abs(reference.field[:, 0])
-    spider_true = abs(spider.field[:, 0]*fit["amplitude"][si])
+    spider_true = abs(spider.field[:, 0])
     context = dict(frequency_GHz=frequency/1e9, geometry=geometry,
                    n_full=len(full_measured), n_spider=len(spider_measured))
     axis = axes[0]
@@ -319,13 +328,13 @@ def plot_geometry_comparison(
     thread_label_template="T{thread_index}",
 ):
     """Sampling positions and independent fitted setups in a common mirror frame."""
-    si, fi = matched_frequency(data, full, frequency_GHz)
+    si, fi = matched_frequency(data, full, frequency_GHz, geometry)
     fit = _plots._fitplot_result(data, geometry)
     params = full.parameters_at(fi)
     setups = [(full_panel_title_template, disk_edges(params), full.z_from_mirror(fi), _FULL_COLOR),
               (spider_panel_title_template, _plots._fitplot_disks(_plots._fitplot_config(fit)),
                fit["z_from_mirror_m"], _plots._FIT_GEOMETRY_COLORS.get(geometry, "C0"))]
-    context = dict(frequency_GHz=data.frequencies_Hz[si]/1e9, geometry=geometry,
+    context = dict(frequency_GHz=fit["frequencies_Hz"][si]/1e9, geometry=geometry,
                    full_mirror_z_m=params["z_m"], spider_mirror_z_m=float(data.fields["mirror_z_m"]))
     figure, axes = plt.subplots(2, 1, figsize=(12.5, 5.7), sharex=True, constrained_layout=True)
     for axis, (label, edges, positions, color) in zip(axes, setups):
@@ -369,13 +378,13 @@ def plot_gap_comparison(
 
 
 def _common_model_grid(data, full, geometry, points=240):
-    spider_indices, full_indices = common_frequency_indices(data, full)
-    frequency = data.frequencies_Hz[spider_indices]
+    spider_indices, full_indices = common_frequency_indices(data, full, geometry)
+    fit = _plots._fitplot_result(data, geometry)
+    frequency = fit["frequencies_Hz"][spider_indices]
     z = np.linspace(0, 0.04, points)
     reference = np.column_stack([evaluate_full_model(value, z, full.parameters_at(fi)).field[:, 0]
                                  for value, fi in zip(frequency, full_indices)])
-    fit = _plots._fitplot_result(data, geometry)
-    spider = _plots._fitplot_evaluate(frequency, z, _plots._fitplot_config(fit)).field*fit["amplitude"][spider_indices]
+    spider = _plots._fitplot_evaluate_saved(fit, frequency, z).field
     return frequency, z, reference, spider
 
 
@@ -416,7 +425,7 @@ def plot_fit_quality_comparison(
 ):
     """Magnitude residuals use the same formula, but each scan has its own z set."""
     spider_indices, full_indices = common_frequency_indices(data, full)
-    frequency = data.frequencies_Hz[spider_indices]
+    frequency = data.fits_1d["both"]["frequencies_Hz"][spider_indices]
     residuals = []
     for value, fi in zip(frequency, full_indices):
         predicted = evaluate_full_model(value, full.z_from_mirror(fi), full.parameters_at(fi)).bead_magnitude[:, 0]
@@ -431,9 +440,10 @@ def plot_fit_quality_comparison(
         if mode not in data.fits_1d:
             continue
         fit = data.fits_1d[mode]
-        observed = abs(fit["ET_measured"][:, spider_indices])
-        residual = np.linalg.norm(fit["ET_fitted_magnitude"][:, spider_indices]-observed, axis=0)/np.linalg.norm(observed, axis=0)
-        axes[0].plot(frequency/1e9, residual*100, color=color,
+        indices, _ = common_frequency_indices(data, full, mode)
+        observed = abs(fit["ET_measured"][:, indices])
+        residual = np.linalg.norm(fit["ET_fitted_magnitude"][:, indices]-observed, axis=0)/np.linalg.norm(observed, axis=0)
+        axes[0].plot(fit["frequencies_Hz"][indices]/1e9, residual*100, color=color,
                      label=render_text(spider_curve_label_template, mode=mode, n_spider=observed.shape[0], **context))
     axes[0].set(ylabel=render_text(y_label, **context), title=render_text(title, **context), ylim=(0, None))
     axes[0].legend(fontsize=8, ncol=2)

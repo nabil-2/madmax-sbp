@@ -1,0 +1,50 @@
+{
+  "notebook": "https://github.com/nabil-2/spider-bead-pull-ai/blob/9f28201c14dbc6724984ee4ea5e8e05af2fecda3/5_Analysis_Boostfactor_Determination_Spider_ET.ipynb",
+  "notebook_sha256": "9631ca2e83525a131326c6b2ea9d0344a40cee181254b90e83e9e8a4487e9002",
+  "copied_notebook_functions": [
+    "assert_finite_vector",
+    "orient_ET",
+    "make_ET_measurements",
+    "build_dataset",
+    "robust_median_mad",
+    "hampel_component_flags",
+    "detect_reduced_ET_outliers",
+    "final_parameter_table",
+    "integrate_mc_fields",
+    "boostfactor_from_int_dz",
+    "ET_dataframe",
+    "run_boostfactor_analysis"
+  ],
+  "madbead_files": {
+    "bead_finite_size.jl": {
+      "source_sha256": "1ecc047d8bc831438d292381869fa7fd3d794656ebe7b657f015f22ee39cded4",
+      "local_sha256": "b0e36da769c815b63180374013eeef15c481ba552a8c0e1a584e237879c77c4a"
+    },
+    "field_1D_fit.jl": {
+      "source_sha256": "723d838b7a872e67d82613a40e640d39ebbd742183e4d9270deab46775fce284",
+      "local_sha256": "f112507a742b60c856068c1754a478651839376d9154e6af2247e5e09095bed3"
+    }
+  },
+  "adaptations": [
+    "Only the dependencies required by the 1D routines are loaded.",
+    "The too-few-z prior fallback is omitted.",
+    "The shared SBP geometry fit is applied before the per-frequency amplitude MC fit.",
+    "Raw-to-transverse-field preparation remains src/sbp_analysis.py; inputs are restricted to 20\u201322 GHz.",
+    "The reduced/full grid configuration sweep and ranking are omitted for one measured spider scan.",
+    "Numeric parameter names use ASCII archive keys for Python/Julia transport; model parameter names are restored before field evaluation.",
+    "Trailing whitespace and blank EOF lines in copied source are normalized; calculation statements are unchanged."
+  ],
+  "measurement_reanalysis_performed_during_migration": false,
+  "synthetic_validation": {
+    "notebook_functions_copied_verbatim": 12,
+    "original_notebook_MC_and_boost_relative_tolerance": 1e-13,
+    "original_MADBead_mean_field_plot_relative_tolerance": 2e-10,
+    "geometry_cases": [
+      "fixed",
+      "gaps",
+      "positions",
+      "both"
+    ],
+    "actual_measurement_files_used": false
+  }
+}

@@ -206,6 +206,25 @@ reanalysis is claimed by this quick check.
 
 ## 1D measurement analysis
 
+The [1D documentation](https://nabil-2.github.io/madmax-sbp/analysis/one_dimensional.html)
+explains the SBP trace-to-integral preparation and geometry extension. It treats
+the calculations already present in the old `5_` notebook as the **existing 1D
+analysis pipeline**: a black box for amplitude fitting, field integration and
+boost calculation. Disk-gap fitting already exists there. The backend now uses
+the notebook's functions and original MADBead routines directly, including
+frequency-outlier rejection and Monte Carlo propagation. Our raw-to-transverse-
+integral logic is retained, along with the shared geometry extensions.
+
+Install the Julia dependencies once before enabling recomputation:
+
+```bash
+julia --project=julia/analysis_1d -e 'using Pkg; Pkg.instantiate()'
+```
+
+Julia must be on `PATH`, or selected through `MADMAX_SBP_JULIA`. The cluster's
+`/software/julia/default/bin/julia` is detected automatically. No separate
+MADBead checkout is needed; the required original routines are in `src/madbead/`.
+
 Open [sbp_1d_analysis.ipynb](sbp_1d_analysis.ipynb). It retains the plots and their
 order from `pipeline_overview.ipynb`: setup, raw complex traces, reference
 subtraction, centre finding, radial fields and maps, transverse integration,
@@ -251,7 +270,9 @@ are committed with their rendered figures included; no external plotting script
 is required.
 
 - `src/sbp_analysis.py`: raw line data to radial fields and transverse integrals.
-- `src/fit_1D.py`: finite-bead longitudinal model and four geometry fits.
+- `src/fit_1D.py`: numeric adapter for the existing Julia 1D analysis pipeline.
+- `src/run_1d.jl`: shared geometry amendments and the existing analysis calls.
+- `src/existing_1d_functions.jl`, `src/madbead/`: notebook/MADBead routines.
 - `src/pipeline_plots.py`: the original measurement and 1D figures.
 - `src/full_bead_comparison.py`, `src/full_bead_model.py`: read the saved full-pull
   results and reproduce their model/normalization for comparison.
@@ -259,7 +280,10 @@ is required.
 The four cases keep geometry fixed, adjust disk gaps, adjust thread z, or adjust
 both. This longitudinal model has no disk-tilt degrees of freedom; disk and
 thread tilts belong to the 3D workflow. The corrected nominal mirror gap is
-**7.803 mm**. No uncertainty estimate is claimed by this original 1D fitter.
+**7.803 mm**. The existing pipeline propagates its input uncertainties through
+100 Monte Carlo draws by default, with an assumed 5% ET error. The shared
+geometry fit does not supply an additional covariance estimate. The old
+too-few-z fallback and reduced-grid configuration ranking are omitted.
 
 The default notebook reads local copies of these original inputs/results:
 
@@ -283,9 +307,9 @@ the 3D beam CSV is also restricted before interpolation.
 
 The optional recompute cells near the top of the 1D notebook regenerate the
 fields and all four fits before loading results. They remain disabled. Existing
-saved 1D results and rendered figures still use the earlier 12–22 GHz analysis;
-no reanalysis has been run since changing the filter. The updated pipeline
-rejects these old out-of-band products instead of silently cropping them.
+saved 1D results and rendered figures still use the earlier 12–22 GHz analysis
+and previous backend; no measurement reanalysis has been run. The updated
+pipeline rejects these old products instead of silently reusing them.
 
 The initial migration check, before changing the frequency restriction,
 reproduced the original fitted fields at 20.7, 20.825 and 21 GHz to numerical

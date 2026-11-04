@@ -2,9 +2,13 @@ Analysis
 ========
 
 The two fits use different observables. Neither fits a freely chosen boost
-spectrum: :math:`\beta^2` is calculated from the fitted field/model response. Both
-booster models and the bead response are treated as black boxes; the following
-pages document their inputs, outputs and fitting steps.
+spectrum: :math:`\beta^2` is calculated from the fitted field/model response.
+For 1D, the existing 1D analysis pipeline is treated as a black box covering
+longitudinal fitting, field integration and boost calculation; the 1D page
+documents the SBP input preparation and geometry extension. Its backend uses
+the original notebook/MADBead routines with the necessary SBP adapters.
+The 3D booster model and the bead response are also
+treated as black boxes.
 
 .. list-table:: Choose a pipeline
    :header-rows: 1
@@ -58,8 +62,8 @@ antenna. Positions below are **central near faces**, not disk centres.
 The scan logs supply measured **x/y**; their original z column is not a registered
 booster coordinate. The supplied geometry determines nominal analysis z.
 Both pipelines discard raw frequencies outside 20–22 GHz before preprocessing.
-The saved 1D results and rendered figures still use the previous 12–22 GHz
-analysis and await reprocessing; the 3D results were already restricted to
+The saved 1D results and rendered figures still use the previous backend and
+12–22 GHz analysis and await reprocessing; the 3D results were already restricted to
 20–22 GHz. Out-of-band saved inputs are rejected by the updated pipeline.
 
 Units and plot exports

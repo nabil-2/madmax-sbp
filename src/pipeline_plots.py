@@ -15,7 +15,8 @@ from matplotlib.lines import Line2D as _FitPlotLine
 from matplotlib.patches import Patch as _FitPlotPatch, Rectangle as _FitPlotRectangle
 from matplotlib.colors import LogNorm as _FitPlotLogNorm
 
-from .fit_1D import ModelConfig as _FitPlotConfig, evaluate_model as _fitplot_evaluate
+from .fit_1D import (ModelConfig as _FitPlotConfig, evaluate_model as _fitplot_evaluate,
+                     evaluate_saved_model as _fitplot_evaluate_saved)
 
 from . import sbp_analysis
 from .data_paths import DATA_DIR, OUTPUTS_DIR, REFERENCE_DATA_DIR, analysis_output_path
@@ -144,6 +145,8 @@ def load_pipeline(run_dir=None, output_dir=None, fit_3d_path=None, *, frequency_
     for path in sorted(output_dir.glob("integrated_fields_fit_1D*.npz")):
         fit = _read_npz(path)
         require_analysis_band(fit["frequencies_Hz"], f"Saved 1D fit {path}")
+        if str(fit.get("analysis_backend", "")) != "existing_5_notebook_MADBead":
+            raise ValueError(f"{path} uses the replaced 1D backend; regenerate it with the existing 5_ pipeline when ready.")
         mode = str(fit.get("fit_method", "fixed"))
         fits[mode] = fit
     spatial = None
@@ -196,6 +199,8 @@ def select_frequency_range(data, frequency_range_GHz):
         if not np.any(mask):
             return None
         result = dict(record)
+        axes = {**axes, **{key: 0 for key in record if key.startswith(
+            ("parameter__", "parameter_error__", "mc_parameter__"))}}
         for key, axis in {"frequencies_Hz": 0, **axes}.items():
             if key in result:
                 result[key] = np.compress(mask, result[key], axis=axis)
@@ -207,7 +212,9 @@ def select_frequency_range(data, frequency_range_GHz):
     fields = subset(data.fields, {"ET": 1, "electric_field": 1})
     lines = {index: _fitplot_replace(line, traces=line.traces[:, mask]) for index, line in data.lines.items()}
     fit_axes = {"ET_measured": 1, "ET_fitted_magnitude": 1, "ET_unperturbed": 1,
-                "amplitude": 0, "integral_ET_dz": 0, "beta2": 0, "residual_rms": 0}
+                "amplitude": 0, "integral_ET_dz": 0, "beta2": 0, "residual_rms": 0,
+                "beta2_error": 0, "integral_ET_dz_error": 0,
+                "integral_ET_dz_model": 0, "integral_ET_dz_mc": 0}
     fits = {mode: fit for mode, saved in data.fits_1d.items() if (fit := subset(saved, fit_axes)) is not None}
     spatial_axes = {"electric_field_measured": 1, "electric_field_unperturbed": 1, "predicted_squared": 1,
                     "coefficients": 0, "beta2": 0, "beta2_total": 0, "relative_residual": 0,
@@ -1050,10 +1057,9 @@ def _fitplot_draw_field(
     z = np.asarray(saved["z_from_mirror_m"], float)
     z_nominal = np.asarray(saved.get("z_nominal_m", z), float)
     ids = _fitplot_thread_ids(data, len(z))
-    amplitude = np.asarray(saved["amplitude"])[index]
     sampled_z = np.linspace(0, _fitplot_z_limit(config, z) if z_max_m is None else z_max_m, 1300)
-    model = _fitplot_evaluate([frequency], sampled_z, config)
-    bead_curve = model.bead_magnitude[:, 0]*abs(amplitude)
+    model = _fitplot_evaluate_saved(saved, [frequency], sampled_z)
+    bead_curve = model.bead_magnitude[:, 0]
     bead_radius = config.bead_diameter_m/2
     valid_bead_center = sampled_z >= bead_radius
     for start, end in _fitplot_disks(config):
@@ -1062,7 +1068,7 @@ def _fitplot_draw_field(
     _fitplot_style_axis(axis)
     _fitplot_setup_bands(axis, config, nominal_config, labels=not compact,
                          disk_label_template=disk_label_template)
-    axis.plot(sampled_z*1e3, abs(model.field[:, 0]*amplitude), color=_FIT_CURVE_COLORS["true"],
+    axis.plot(sampled_z*1e3, abs(model.field[:, 0]), color=_FIT_CURVE_COLORS["true"],
               linewidth=1.65, label=render_text(true_field_label), zorder=2)
     axis.plot(sampled_z*1e3, bead_curve, "--",
               color=_FIT_CURVE_COLORS["bead"], linewidth=1.65, label=render_text(bead_model_label), zorder=3)
@@ -1093,7 +1099,7 @@ def _fitplot_draw_field(
               transform=axis.transAxes,
               ha="right", va="top", fontsize=8.5, color="#485563",
               bbox={"facecolor": "white", "alpha": 0.85, "edgecolor": "none", "pad": 2.5})
-    top = max(float(np.max(abs(model.field[:, 0]*amplitude))), float(np.max(measured)),
+    top = max(float(np.max(abs(model.field[:, 0]))), float(np.max(measured)),
               float(np.max(bead_curve[np.isfinite(bead_curve)], initial=0)), 1e-15)
     axis.set(xlim=(-1.4, sampled_z[-1]*1e3), ylim=(0, top*1.22), ylabel=render_text(y_label))
     axis.legend(loc="upper center", bbox_to_anchor=(0.48, 1),
@@ -1220,6 +1226,10 @@ def plot_fit_spectra(
                              out=np.full_like(norm, np.nan), where=norm > 0)
         axes[0].plot(frequency, saved["beta2"], color=color, linewidth=1.35,
                      label=_fitplot_geometry_label(geometry, geometry_labels), alpha=0.93)
+        if "beta2_error" in saved:
+            error = np.asarray(saved["beta2_error"])
+            axes[0].fill_between(frequency, np.maximum(0, saved["beta2"]-error),
+                                 saved["beta2"]+error, color=color, alpha=0.14, lw=0)
         axes[1].plot(frequency, residual*100, color=color, linewidth=1.0, alpha=0.9)
     for axis in axes:
         _fitplot_style_axis(axis)
@@ -1326,7 +1336,7 @@ def plot_1d_field_map(
     z_fit = np.asarray(saved["z_from_mirror_m"], float)
     z_nominal = np.asarray(saved.get("z_nominal_m", z_fit), float)
     z = np.linspace(0, _fitplot_z_limit(config, z_fit), 320)
-    magnitude = abs(_fitplot_evaluate(frequencies, z, config).field*np.asarray(saved["amplitude"])[select])
+    magnitude = abs(_fitplot_evaluate_saved(saved, frequencies, z).field)
     norm = None
     if logarithmic:
         positive = magnitude[magnitude > 0]
