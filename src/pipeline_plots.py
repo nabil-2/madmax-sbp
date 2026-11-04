@@ -20,11 +20,11 @@ from .fit_1D import (ModelConfig as _FitPlotConfig, evaluate_model as _fitplot_e
 
 from . import sbp_analysis
 from .data_paths import DATA_DIR, OUTPUTS_DIR, REFERENCE_DATA_DIR, analysis_output_path
-from .plot_text import render_text, display_figure
+from .plot_text import render_text, display_figure, THREAD_COLORS
 from .analysis_band import require_analysis_band
 
 
-_THREAD_COLORS = {0: "#3b6fb6", 1: "#db7b32", 2: "#2a9d8f", 3: "#9c4f96"}
+_THREAD_COLORS = dict(enumerate(THREAD_COLORS))
 
 
 @dataclass
@@ -369,9 +369,9 @@ def plot_raw_magnitude(
     k = data.frequency_index(frequency_GHz)
     figure, axes = plt.subplots(2, 2, figsize=(9, 6.2), layout="constrained",
                                sharex=True, sharey=True)
-    colors = ("#3366AA", "#DD8844", "#228877", "#8855AA")
     lower, upper, extent = np.inf, -np.inf, 0.0
-    for axis, thread, color in zip(axes.flat, _thread_indices(data), colors):
+    for axis, thread in zip(axes.flat, _thread_indices(data)):
+        color = _THREAD_COLORS[thread]
         line = data.lines[thread]
         position = (line.position_m-(line.position_m.min()+line.position_m.max())/2)*1000
         magnitude = 20*np.log10(abs(line.traces[:, k]))
@@ -903,7 +903,7 @@ def interactive_explorer(
 _FIT_GEOMETRY_COLORS = {
     "fixed": "#3b6fb6", "gaps": "#2a9d8f", "positions": "#d99222", "both": "#9c4f96",
 }
-_FIT_THREAD_COLORS = {0: "#3b6fb6", 1: "#db7b32", 2: "#2a9d8f", 3: "#9c4f96"}
+_FIT_THREAD_COLORS = _THREAD_COLORS
 _FIT_GEOMETRY_LABELS = {
     "fixed": "Fixed geometry", "gaps": "Fit gaps", "positions": "Fit plane positions",
     "both": "Fit gaps + planes",

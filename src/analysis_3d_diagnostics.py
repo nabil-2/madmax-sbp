@@ -45,7 +45,8 @@ def incident_beam_figures(
                           fill=False, edgecolor="white", ls="--", lw=1))
     axis.set(xlabel=render_text(x_label), ylabel=render_text(y_label), aspect="equal",
              title=render_text(title, **context))
-    figure.colorbar(image, ax=axis, label=render_text(colorbar_label))
+    colorbar_axis = axis.inset_axes([1.04, 0, 0.05, 1])
+    figure.colorbar(image, cax=colorbar_axis, label=render_text(colorbar_label))
     profile = entry(
         figure, "incident_beam_profile", "Prescribed incident beam",
         "Actual six-profile beam mixture at the model's outer reference face, normalized to 1 W over the whole plane. Phase is assumed flat; the original scan z origin is not registered to the mirror. The circle marks the 150 mm aperture, not an input-power renormalization.",

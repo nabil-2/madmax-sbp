@@ -12,14 +12,13 @@ from matplotlib.ticker import MaxNLocator
 from .receive_field import NOM_DISKS_MM
 from .analysis_3d import NOM_Z_MM
 from .disk_surfaces import DiskSurfaces
-from .plot_text import render_text, display_figure
+from .plot_text import render_text, display_figure, save_figure, THREAD_COLORS
 
 TITLE = "Disk tilts + sloped threads"
 CASE = "disk_tilts_threads"
 FIT_THREADS = (0, 1, 2, 3)
 COLOR = "#AA3377"
 GREY = "#687782"
-THREAD_COLORS = ["#CC6677", "#4477AA", "#228833", "#AA4499"]
 NOMINAL_DISKS = FIT_DISKS_MM = NOM_DISKS_MM
 NOMINAL_THREADS = FIT_THREADS_MM = NOM_Z_MM
 FREQUENCIES = (20.795, 20.825)
@@ -63,7 +62,8 @@ def present(entries, output_dir=None, *, captions=False):
             out = Path(output_dir)
             out.mkdir(parents=True, exist_ok=True)
             for extension in ("png", "pdf"):
-                fig.savefig(
+                save_figure(
+                    fig,
                     out / (item["stem"] + "." + extension), dpi=160, bbox_inches="tight"
                 )
         display_figure(fig)
@@ -327,6 +327,7 @@ def geometry_figures(
     thread_label_template="T{thread_index}",
     position_annotation_template="{z_mm:.3f}",
     shift_annotation_template="{shift_mm:+.3f}",
+    slope_annotation_template="{slope_mrad:+.2f}",
     nominal_disk_band_label="Corrected nominal disk",
     fitted_disk_band_label="Fitted disk centre",
     nominal_thread_marker_label="Corrected nominal thread",
@@ -513,10 +514,7 @@ def geometry_figures(
         + SCOPE_DESCRIPTION,
     )
     split_geometry = CASE == "disk_tilts_threads"
-    # This projection plot uses the requested T0/T1 colour swap.
-    projection_colors = (
-        [THREAD_COLORS[t] for t in (1, 0, 2, 3)] if split_geometry else THREAD_COLORS
-    )
+    projection_colors = THREAD_COLORS
     if split_geometry:
         fig, projection_axes = plt.subplots(
             1, 2, figsize=(8, 4.2), layout="constrained"
@@ -646,7 +644,14 @@ def geometry_figures(
                               color=GREY, lw=0.8, ls=":", label=search_range_label)
     for edge in disk_bounds.T:
         adjustment_axes[0].hlines(edge, x-0.28, x+0.28, color=GREY, lw=0.8, ls=":")
-    adjustment_axes[0].bar(x, disk_shifts_mm(faces), color=COLOR, width=0.55)
+    disk_shift_values = disk_shifts_mm(faces)
+    shift_bars = adjustment_axes[0].bar(x, disk_shift_values, color=COLOR, width=0.55)
+    adjustment_axes[0].bar_label(
+        shift_bars,
+        labels=[render_text(shift_annotation_template, shift_mm=value, disk_index=j+1)
+                for j, value in enumerate(disk_shift_values)],
+        padding=3, fontsize=8,
+    )
     adjustment_axes[0].set_ylim(min(disk_bounds[:, 0].min(), disk_shifts_mm(faces).min())-0.7,
                                 max(disk_bounds[:, 1].max(), disk_shifts_mm(faces).max())+0.7)
     adjustment_axes[0].legend(fontsize=7.8, loc="upper center",
@@ -668,8 +673,14 @@ def geometry_figures(
                                   color=GREY, lw=0.8, ls=":")
         adjustment_axes[1].hlines([tilt_bound]*3, x+offset-0.13, x+offset+0.13,
                                   color=GREY, lw=0.8, ls=":")
-        adjustment_axes[1].bar(
+        slope_bars = adjustment_axes[1].bar(
             x + offset, slopes[:, col], width=0.32, color=color, label=label
+        )
+        adjustment_axes[1].bar_label(
+            slope_bars,
+            labels=[render_text(slope_annotation_template, slope_mrad=value, disk_index=j+1)
+                    for j, value in enumerate(slopes[:, col])],
+            padding=3, fontsize=8,
         )
     adjustment_axes[1].set(
         xticks=x,
@@ -700,7 +711,7 @@ def geometry_figures(
             "Projected line–disk intersections do not establish physical overlap: the chord can have a nonzero other transverse coordinate. Both axial and transverse scales are deliberately different. "
             "The saved clearance is a conservative bound to measured curved faces plus fitted rigid tilts along the continuous chord, extended at the finite rim. The nominal reference-plane separation is 1 mm; the two measured faces set local thickness.",
         )
-    fig = plt.figure(figsize=(6.5, 5.6), layout="constrained")
+    fig = plt.figure(figsize=(9.4, 5.6), layout="constrained")
     ax = fig.add_subplot(111, projection="3d")
     radial = np.linspace(0, RADIUS_MM, 16)
     phi = np.linspace(0, 2 * np.pi, 65)
@@ -728,6 +739,7 @@ def geometry_figures(
         ax.scatter(xy[t, :, 0], xy[t, :, 1], endpoint[t], color=THREAD_COLORS[t], s=15)
     ax.set(
         xlim=(-210, 210),
+        xticks=(-200, 0, 200),
         ylim=(-210, 210),
         zlim=(0, 37),
         xlabel=x_label,
@@ -735,8 +747,12 @@ def geometry_figures(
         zlabel=view_z_label,
         title=view_title,
     )
-    ax.set_box_aspect((1, 1, 1.15))
-    ax.view_init(elev=23, azim=-57)
+    # With y vertical, Matplotlib rolls this tuple to physical x/y/z = 1/1/1.65.
+    ax.set_box_aspect((1.65, 1, 1), zoom=1.15)
+    ax.set_proj_type("persp", focal_length=0.8)
+    ax.view_init(elev=0, azim=-67, roll=0, vertical_axis="y")
+    ax.yaxis.set_ticks_position("lower")
+    ax.yaxis.set_label_position("lower")
     handles, labels = ax.get_legend_handles_labels()
     fig.legend(
         handles,
@@ -751,7 +767,7 @@ def geometry_figures(
         fig,
         "geometry_3d",
         "Oblique view of the fitted disk surfaces and paths",
-        "Axial distances are strongly exaggerated relative to transverse distances so the fitted slopes and endpoint heights can be seen. "
+        "This perspective view keeps y upright, z running left to right and x receding into the scene. Axial distances are strongly exaggerated relative to transverse distances so the fitted slopes and endpoint heights can be seen. "
         "Translucent surfaces show measured near faces plus fitted rigid tilts; paired rim curves show the measured far faces. The grey plane is the mirror. "
         "Coloured straight segments connect the actual retained x/y endpoints at their fitted z coordinates. These recorded segment endpoints are not measured support anchors.",
     )
@@ -759,6 +775,34 @@ def geometry_figures(
         [first, second, adjustments, third]
         if split_geometry
         else [first, second, third]
+    )
+
+
+def delta_gamma_maps(maps):
+    """Bead-induced reflection magnitude, including the profiled common scale.
+
+    The saved finite-bead effective field is sqrt(abs(c * Q)). Thus the
+    fitted response abs(c * conj(kappa * Q)) equals abs(kappa) times its square.
+    This uses the directional-wave bead response, not simply abs(E)**2.
+    """
+    factor = abs(kappa(maps["frequency_hz"]))[:, None, None, None]
+    return factor * maps["field_proxy_V_per_m"] ** 2
+
+
+def field_map_vmax(maps, *, observable="electric_field"):
+    """Largest displayed value across selected frequencies and four threads."""
+    if observable not in ("electric_field", "delta_gamma"):
+        raise ValueError("Choose electric_field or delta_gamma for horizontal sections.")
+    field_key = (
+        "unperturbed_magnitude_V_per_m"
+        if CASE == "disk_tilts_threads" else "field_proxy_V_per_m"
+    )
+    field = delta_gamma_maps(maps) if observable == "delta_gamma" else maps[field_key]
+    window = (abs(maps["x_m"][:, None]) <= 0.205) & (abs(maps["y_m"][None, :]) <= 0.205)
+    return max(
+        float(np.nanmax(np.where(maps["support"][at_frequency(maps, f)],
+                                 field[at_frequency(maps, f)], np.nan)[:, window]))
+        for f in FREQUENCIES
     )
 
 
@@ -771,9 +815,14 @@ def field_map_figures(
     panel_title_template="T{thread_index}{held_out}\nz = {z_mm:.4f} mm",
     x_label="x [mm]",
     y_label="y [mm]",
-    colorbar_label="$|E|$ [V/m]",
+    colorbar_label=None,
     held_out_label=" · held out",
+    vmax=None,
+    observable="electric_field",
 ):
+    if observable not in ("electric_field", "delta_gamma"):
+        raise ValueError("Choose electric_field or delta_gamma for horizontal sections.")
+    reflection = observable == "delta_gamma"
     x, y = maps["x_m"] * 1000, maps["y_m"] * 1000
     z = maps.get("thread_midpoint_z_mm", maps.get("thread_z_mm"))
     np.testing.assert_allclose(
@@ -796,22 +845,15 @@ def field_map_figures(
     )
     unperturbed = CASE == "disk_tilts_threads"
     field_key = (
-        "unperturbed_magnitude_V_per_m" if unperturbed else "field_proxy_V_per_m"
+        "unperturbed_magnitude_V_per_m"
+        if unperturbed and not reflection else "field_proxy_V_per_m"
     )
-    field = maps[field_key]
+    field = delta_gamma_maps(maps) if reflection else maps[field_key]
     if field.shape != maps["support"].shape or field.shape[1] != 4:
         raise ValueError("Maps must contain all four thread midpoint planes")
-    window = (abs(x[:, None]) <= 205) & (abs(y[None, :]) <= 205)
-    vmax = max(
-        np.nanmax(
-            np.where(
-                maps["support"][at_frequency(maps, f)],
-                field[at_frequency(maps, f)],
-                np.nan,
-            )[:, window]
-        )
-        for f in FREQUENCIES
-    )
+    vmax = field_map_vmax(maps, observable=observable) if vmax is None else float(vmax)
+    if not np.isfinite(vmax) or vmax <= 0:
+        raise ValueError("The field colour-scale maximum must be positive and finite.")
     entries = []
     for f in FREQUENCIES:
         k = at_frequency(maps, f)
@@ -853,20 +895,40 @@ def field_map_figures(
             if t % 2 == 0:
                 ax.set_ylabel(y_label)
         colour_label = colorbar_label
+        if colour_label is None:
+            colour_label = r"$|\Delta\Gamma|$" if reflection else "$|E|$ [V/m]"
         fig.colorbar(display, ax=axs, shrink=0.84, label=colour_label)
         fig.suptitle(
             render_text(title_template, case_title=TITLE, frequency_GHz=f),
             fontsize=10.5,
         )
-        if unperturbed:
+        if reflection:
+            figure = entry(
+                fig,
+                "transverse_delta_gamma_" + f"{f:.3f}".replace(".", "p"),
+                f"Predicted reflection-change magnitude · {f:.3f} GHz",
+                "Colours show the dimensionless magnitude of the predicted bead-induced complex reflection change. "
+                "The finite-bead directional-wave response and common complex response scale are the same as in the 3D fit at this geometry; affine backgrounds are excluded. "
+                "All four horizontal thread-midpoint sections share one colour scale and retain the field plot's aperture/clearance mask, path overlays and disk-radius circles.",
+            )
+            figure.update(
+                source_array="field_proxy_V_per_m",
+                quantity="abs(kappa) * field_proxy_V_per_m**2",
+                units="dimensionless",
+                colour_limits=[0.0, float(vmax)],
+                finite_bead_response_applied=True,
+                affine_background_included=False,
+            )
+            entries.append(figure)
+        elif unperturbed:
             caption = (
-                "Colours show the fitted model's electric-field magnitude without the bead: the magnitude of the summed incoming and outgoing fields, including the fitted amplitude scale. "
-                "Each panel is a horizontal section at its thread's fitted midpoint z. "
+                "Colours show the model's electric-field magnitude without the bead: the magnitude of the summed incoming and outgoing fields, including the amplitude scale determined from the spider data at the supplied geometry. "
+                "Each panel is a horizontal section at its thread's midpoint z. "
                 + SCOPE_DESCRIPTION
                 + " "
                 "The black/white dotted overlay marks one projected x/y path; a sloped thread generally leaves this plane. "
                 "The existing aperture and conservative clearance display mask is retained; blank regions do not mean zero field. "
-                "Dashed circles mark the 150 mm disk radius. All four threads and both frequencies share one colour scale."
+                "Dashed circles mark the 150 mm disk radius. All four threads and displayed frequencies share one colour scale."
             )
             figure = entry(
                 fig,

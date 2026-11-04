@@ -3,7 +3,8 @@
 from pathlib import Path
 import json
 import numpy as np
-from .analysis_3d import NOM_Z_MM
+from .analysis_3d import NOM_Z_MM, EndpointFitProblem, save_result
+from .receive_field import NOM_DISKS_MM
 from .analysis_3d_inputs import load_measurement
 
 Q = np.array([0.025, 0.16, 0.5, 0.84, 0.975])
@@ -142,6 +143,33 @@ def conditional_bands(a, fit_threads, draws=1000):
         * a["beta2_received_geometry_only"][None, :]
     )
     return np.quantile(beta, Q, axis=0).T
+
+
+def nominal_midpoint_maps(
+    bank, measurement_path, beam_path, geometry, folder, *, frequencies_hz
+):
+    """Export fields at measured nominal geometry; fit no geometry parameters.
+
+    Keep the measured disk faces and illumination. Determine the common complex
+    response scale and affine backgrounds from the spider data at this geometry,
+    using the same analytic profiling as the fitted-geometry calculation.
+    """
+    parameters = np.zeros(17)
+    parameters[:3] = np.asarray(geometry["nominal_disk_nearface_z_mm"]) - NOM_DISKS_MM
+    parameters[3:9] = np.asarray(geometry["nominal_disk_slopes_mrad"]).ravel()
+    parameters[9:] = np.repeat(
+        np.asarray(geometry["nominal_thread_z_mm"]) - NOM_Z_MM, 2
+    )
+    problem = EndpointFitProblem(bank, measurement_path, beam_path)
+    if not problem.feasible(parameters):
+        raise ValueError("Nominal geometry violates the disk/thread clearance constraints.")
+    record, arrays = save_result(
+        problem, parameters, folder,
+        {"operation": "Fixed nominal geometry; common response scale and affine backgrounds profiled from spider data.",
+         "geometry_refitted": False},
+    )
+    midpoint_maps(problem, parameters, folder, frequencies_hz=frequencies_hz)
+    return record, arrays
 
 
 def midpoint_maps(p, q, folder, frequencies_hz=(20.795e9, 20.825e9, 21e9)):

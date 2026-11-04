@@ -3,6 +3,9 @@
 import re
 
 
+THREAD_COLORS = ("#3366AA", "#DD8844", "#228877", "#8855AA")
+
+
 _TOKEN = re.compile(r"\{([A-Za-z_]\w*)(?::([^{}]*))?\}")
 
 
@@ -27,11 +30,20 @@ def render_text(template, **context):
     return _TOKEN.sub(replace, template)
 
 
+def save_figure(figure, path, **kwargs):
+    """Include 3D axis labels when saving with a tight bounding box."""
+    labels = [axis.label for ax in figure.axes if ax.name == "3d"
+              for axis in (ax.xaxis, ax.yaxis, ax.zaxis)]
+    if labels:
+        kwargs["bbox_extra_artists"] = [*figure.get_default_bbox_extra_artists(), *labels]
+    figure.savefig(path, **kwargs)
+
+
 def display_figure(figure):
     """Embed an actual PNG even when execution uses a headless backend."""
     from io import BytesIO
     from IPython.display import Image, display
 
     buffer = BytesIO()
-    figure.savefig(buffer, format="png", dpi=110, bbox_inches="tight")
+    save_figure(figure, buffer, format="png", dpi=110, bbox_inches="tight")
     display(Image(data=buffer.getvalue()))
