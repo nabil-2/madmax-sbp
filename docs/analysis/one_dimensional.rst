@@ -16,9 +16,10 @@ it calls: :codefile:`src/existing_1d_functions.jl`, :codefile:`src/run_1d.jl`
 and ``src/madbead/``. :codefile:`src/fit_1D.py` adapts numeric inputs and outputs.
 Our raw-to-transverse-integral logic stays in :codefile:`src/sbp_analysis.py`.
 
-Raw data are filtered to **20–22 GHz before preprocessing**. Existing figures
-still come from the previous backend and frequency range; the revised analysis
-has not been run.
+Raw data are filtered to **20–22 GHz before preprocessing**. The current 1D
+figures use this pipeline with 100 Monte Carlo draws per retained frequency.
+All four geometry cases use T0–T3; the full bead-pull reference enters only
+the comparison plots after fitting.
 
 1. Prepare the spider traces
 ----------------------------
@@ -166,3 +167,38 @@ The numeric outputs keep the retained frequencies, fitted parameters, fields,
 boost values/errors, Monte Carlo draws and rejected-frequency masks. Plots match
 frequencies explicitly after rejection. Their labels remain editable in the
 notebook, and no normalized shape-comparison plots are generated.
+
+Current measurement run
+-----------------------
+
+Run ``run_20261025_141003`` was reprocessed on 4 November 2026, using all
+401 acquired frequencies in 20–22 GHz, T0–T3 and 100 Monte Carlo draws.
+The existing outlier filter rejected no frequencies. The four fits ran in
+parallel on ``max-itt002``; numerical analysis took 157 s including startup.
+
+.. list-table:: Results at 20.825 GHz
+   :header-rows: 1
+   :widths: 35 35 30
+
+   * - Geometry case
+     - :math:`\beta^2` with propagated uncertainty
+     - Relative magnitude residual
+   * - Fixed
+     - :math:`294\pm167`
+     - 21.2%
+   * - Disk gaps
+     - :math:`239\pm208`
+     - 22.8%
+   * - Thread z
+     - :math:`319\pm183`
+     - 21.2%
+   * - Both
+     - :math:`256\pm221`
+     - 23.3%
+
+These are conditional uncertainties from the existing pipeline's input priors,
+not an added geometry-fit covariance. The geometry minimizes the full-band
+objective, rather than the residual at this one frequency. Several fitted
+coordinates reach their allowed 0.5 mm shifts; the residuals and broad
+uncertainties remain substantial. Exact shifts are saved in
+:codefile:`config/analysis_1d_provenance.json` and shown in the notebook.

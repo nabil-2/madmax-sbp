@@ -46,5 +46,178 @@
       "both"
     ],
     "actual_measurement_files_used": false
+  },
+  "latest_measurement_run": {
+    "date": "2026-11-04",
+    "measurement_run": "run_20261025_141003",
+    "job_id": "25608520",
+    "compute_node": "max-itt002.desy.de",
+    "source_commit": "2c66f843dd3d98b7cd6c3d8300d7ad89fee0ec79",
+    "frequency_range_GHz": [
+      20.0,
+      22.0
+    ],
+    "raw_retained_frequency_count": 401,
+    "threads": [
+      "T0",
+      "T1",
+      "T2",
+      "T3"
+    ],
+    "n_mc": 100,
+    "relative_ET_error_assumption": 0.05,
+    "julia_threads_per_case": 8,
+    "elapsed_seconds": 156.63,
+    "input_sha256": "08db16bde13b7df5f4c204c323559061273dabeba2e7bca0d296b762f92151d4",
+    "full_reference_used_in_reconstruction_or_fitting": false,
+    "cases": {
+      "fixed": {
+        "elapsed_seconds": 149.19,
+        "frequency_count": 401,
+        "rejected_frequencies": 0,
+        "peak_frequency_GHz": 20.825,
+        "peak_beta2": 294.4068766660096,
+        "peak_beta2_error": 166.99613924022333,
+        "frequency_near_20p825_GHz": 20.825,
+        "beta2_near_20p825": 294.4068766660096,
+        "beta2_error_near_20p825": 166.99613924022333,
+        "residual_near_20p825_percent": 21.246670019510855,
+        "median_residual_percent": 40.60507581489284,
+        "gap_widths_m": [
+          0.007803,
+          0.008853,
+          0.008855
+        ],
+        "z_from_mirror_m": [
+          0.032011,
+          0.0230835,
+          0.0132295,
+          0.0039015
+        ],
+        "gap_shift_um": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "thread_shift_um": [
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ]
+      },
+      "gaps": {
+        "elapsed_seconds": 154.35,
+        "frequency_count": 401,
+        "rejected_frequencies": 0,
+        "peak_frequency_GHz": 20.905,
+        "peak_beta2": 249.97219144180178,
+        "peak_beta2_error": 169.64263173286534,
+        "frequency_near_20p825_GHz": 20.825,
+        "beta2_near_20p825": 238.6119711381625,
+        "beta2_error_near_20p825": 208.07707603857781,
+        "residual_near_20p825_percent": 22.83151208801725,
+        "median_residual_percent": 30.211047200200543,
+        "gap_widths_m": [
+          0.007605261125906809,
+          0.009353,
+          0.009355
+        ],
+        "z_from_mirror_m": [
+          0.032011,
+          0.0230835,
+          0.0132295,
+          0.0039015
+        ],
+        "gap_shift_um": [
+          -197.7388740931913,
+          500.00000000000045,
+          500.00000000000045
+        ],
+        "thread_shift_um": [
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ]
+      },
+      "both": {
+        "elapsed_seconds": 155.13,
+        "frequency_count": 401,
+        "rejected_frequencies": 0,
+        "peak_frequency_GHz": 20.905,
+        "peak_beta2": 264.5170952823959,
+        "peak_beta2_error": 175.98502589079857,
+        "frequency_near_20p825_GHz": 20.825,
+        "beta2_near_20p825": 256.3892894044684,
+        "beta2_error_near_20p825": 220.58884662087652,
+        "residual_near_20p825_percent": 23.28773444388795,
+        "median_residual_percent": 27.14134154981772,
+        "gap_widths_m": [
+          0.007610237429651914,
+          0.009353,
+          0.009355
+        ],
+        "z_from_mirror_m": [
+          0.032511,
+          0.02294396692202121,
+          0.013117126707492122,
+          0.0044015
+        ],
+        "gap_shift_um": [
+          -192.76257034808643,
+          500.00000000000045,
+          500.00000000000045
+        ],
+        "thread_shift_um": [
+          500.00000000000045,
+          -139.5330779787908,
+          -112.37329250787798,
+          500.0
+        ]
+      },
+      "positions": {
+        "elapsed_seconds": 155.39,
+        "frequency_count": 401,
+        "rejected_frequencies": 0,
+        "peak_frequency_GHz": 20.825,
+        "peak_beta2": 319.1835538159495,
+        "peak_beta2_error": 182.5833195998078,
+        "frequency_near_20p825_GHz": 20.825,
+        "beta2_near_20p825": 319.1835538159495,
+        "beta2_error_near_20p825": 182.5833195998078,
+        "residual_near_20p825_percent": 21.23212763399689,
+        "median_residual_percent": 38.44981127874333,
+        "gap_widths_m": [
+          0.007803,
+          0.008853,
+          0.008855
+        ],
+        "z_from_mirror_m": [
+          0.032511,
+          0.022792335874328,
+          0.0127295,
+          0.0044015
+        ],
+        "gap_shift_um": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "thread_shift_um": [
+          500.00000000000045,
+          -291.1641256720006,
+          -500.00000000000045,
+          500.0
+        ]
+      }
+    },
+    "notebook_exports": {
+      "job_id": "25608570",
+      "compute_node": "max-itt002.desy.de",
+      "rendered_figures": 27,
+      "elapsed_seconds": 36.39,
+      "analysis_archives_unchanged_by_plotting": 5
+    }
   }
 }

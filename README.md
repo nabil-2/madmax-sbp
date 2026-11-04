@@ -305,15 +305,16 @@ pipelines discard raw frequencies outside **20–22 GHz before preprocessing**.
 This includes baseline estimation, centre finding, phase unwrapping and fitting;
 the 3D beam CSV is also restricted before interpolation.
 
-The optional recompute cells near the top of the 1D notebook regenerate the
-fields and all four fits before loading results. They remain disabled. Existing
-saved 1D results and rendered figures still use the earlier 12–22 GHz analysis
-and previous backend; no measurement reanalysis has been run. The updated
-pipeline rejects these old products instead of silently reusing them.
+The 1D notebook contains the new results from all four geometry cases, using
+raw 20–22 GHz data and 100 Monte Carlo draws per retained frequency. The existing
+1D analysis pipeline runs after our transverse reconstruction and shared geometry
+fit. The optional recompute cell remains disabled so that reopening the notebook
+does not launch another fit. The updated loader rejects results from the earlier
+backend. The 3D analysis and its saved figures were not rerun.
 
-The initial migration check, before changing the frequency restriction,
-reproduced the original fitted fields at 20.7, 20.825 and 21 GHz to numerical
-precision. The committed rendered figures come from that earlier execution.
+The measurement rerun was performed on a compute node, with four geometry cases
+in parallel and eight Julia threads per case. Its local run manifest is
+`data/outputs/run_20261025_141003/fit_1D_refit_manifest.json`.
 
 
 ## 3D analysis with disk and thread tilts

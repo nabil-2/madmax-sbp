@@ -8,8 +8,9 @@ Click any plot to view it at full resolution.
 Full bead pull vs 1D
 --------------------
 
-These saved 1D figures predate the switch to the existing 1D analysis pipeline
-and filtering raw data before all processing. Reanalysis is pending.
+The spider result uses the existing 1D analysis pipeline after restricting the
+raw scan to 20–22 GHz. The full bead-pull curves retain their saved values and
+do not enter the spider reconstruction or fit.
 
 .. Exported by sbp_1d_analysis.ipynb from
    plots/1d/full_bead_comparison/both/24_field_comparison_resonance.png
@@ -33,9 +34,9 @@ and filtering raw data before all processing. Reanalysis is pending.
    :target: ../_static/figures/full_reference/1d_boost_both.png
 
    **Boost factor.** Full bead pull against the spider 1D fit with both disk
-   gaps and thread z positions adjusted. Grey shading shows the saved full-scan
-   one-standard-deviation uncertainty. This saved figure has no spider band;
-   the updated pipeline will supply its Monte Carlo spread after reanalysis.
+   gaps and thread z positions adjusted. Shading shows the saved full-scan
+   one-standard-deviation uncertainty and the spider Monte Carlo uncertainty
+   from the existing 1D analysis pipeline (100 draws).
    The axes span 20–22 GHz, with the full reference covering 20.5–21.5 GHz.
 
 Full bead pull vs 3D

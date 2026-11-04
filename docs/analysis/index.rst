@@ -62,9 +62,10 @@ antenna. Positions below are **central near faces**, not disk centres.
 The scan logs supply measured **x/y**; their original z column is not a registered
 booster coordinate. The supplied geometry determines nominal analysis z.
 Both pipelines discard raw frequencies outside 20–22 GHz before preprocessing.
-The saved 1D results and rendered figures still use the previous backend and
-12–22 GHz analysis and await reprocessing; the 3D results were already restricted to
-20–22 GHz. Out-of-band saved inputs are rejected by the updated pipeline.
+The saved 1D results and rendered figures use the existing 1D analysis pipeline,
+with the frequency cut applied before transverse reconstruction, and 100 Monte
+Carlo draws. The 3D results are unchanged by this 1D rerun. Out-of-band saved
+inputs are rejected by both updated pipelines.
 
 Units and plot exports
 ----------------------
