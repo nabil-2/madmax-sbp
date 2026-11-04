@@ -4,8 +4,80 @@ from pathlib import Path
 import json
 import numpy as np
 from .analysis_3d import NOM_Z_MM
+from .analysis_3d_inputs import load_measurement
 
 Q = np.array([0.025, 0.16, 0.5, 0.84, 0.975])
+
+
+def reprofile_saved_geometry(saved, measurement_path):
+    """Use measured S22 with saved physical response templates, without a refit.
+
+    Recompute the common complex scale, affine backgrounds and dependent result
+    arrays. Geometry, directional waves and geometry-only boost stay fixed. The
+    historical geometry-fit mask is kept separately from current profile quality.
+    """
+    measurement = load_measurement(measurement_path)
+    indices = np.searchsorted(measurement["frequency_hz"], saved["frequency_hz"])
+    np.testing.assert_array_equal(measurement["frequency_hz"][indices], saved["frequency_hz"])
+    rows = np.searchsorted(measurement["trace_index"], saved["trace_index"])
+    np.testing.assert_array_equal(measurement["trace_index"][rows], saved["trace_index"])
+    np.testing.assert_array_equal(measurement["thread_index"][rows], saved["thread_index"])
+    np.testing.assert_allclose(measurement["signed_line_m"][rows], saved["signed_line_m"], atol=1e-14)
+    np.testing.assert_allclose(measurement["transverse_xyz_log_m"][rows, :2], saved["xy_m"], atol=1e-14)
+    if np.any(measurement["transient_trace_mask"][rows]):
+        raise ValueError("Saved templates include excluded transition samples.")
+    observed = measurement["observed_S22"][rows][:, indices].T
+    projected = np.empty_like(observed)
+    templates = np.empty_like(observed)
+    designs = []
+    for thread in range(4):
+        take = saved["thread_index"] == thread
+        X = np.column_stack([np.ones(take.sum()), saved["signed_line_m"][take] / 0.1])
+        inverse = np.linalg.pinv(X)
+        projection = np.eye(take.sum()) - X @ inverse
+        projected[:, take] = observed[:, take] @ projection
+        templates[:, take] = saved["template_S22"][:, take] @ projection
+        designs.append((take, X, inverse))
+    coefficient = np.sum(templates.conj() * projected, axis=1) / np.sum(abs(templates) ** 2, axis=1)
+    projected_error = coefficient[:, None] * templates - projected
+    background = np.empty_like(observed)
+    rms, relative, energy = [], [], []
+    for take, X, inverse in designs:
+        error = observed[:, take] - coefficient[:, None] * saved["template_S22"][:, take]
+        background[:, take] = error @ inverse.T @ X.T
+        residual = error - background[:, take]
+        rms.append(np.sqrt(np.mean(abs(residual) ** 2, axis=1)))
+        relative.append(np.linalg.norm(residual, axis=1) / np.linalg.norm(projected[:, take], axis=1))
+        energy.append(np.sum(abs(projected[:, take]) ** 2, axis=1))
+    interior = saved["thread_index"] != 0
+    ip, iy = templates[:, interior], projected[:, interior]
+    interior_coefficient = np.sum(ip.conj() * iy, axis=1) / np.sum(abs(ip) ** 2, axis=1)
+    energy = np.asarray(energy).T
+    relative_all = np.linalg.norm(projected_error, axis=1) / np.linalg.norm(projected, axis=1)
+    result = dict(saved)
+    result.update(
+        reflection_preprocessing="none",
+        geometry_refitted=False,
+        geometry_fit_reflection_preprocessing=saved.get("geometry_fit_reflection_preprocessing", "additive_template"),
+        geometry_fit_mask=saved.get("geometry_fit_mask", saved["eligible"]),
+        evaluation_method="Common scale and affine backgrounds refitted to measured S22 at saved geometry.",
+        eligible=measurement["shared_fit_mask"][indices],
+        observed_S22=observed,
+        fitted_background=background,
+        predicted_S22=coefficient[:, None] * saved["template_S22"] + background,
+        quadratic_scale=coefficient,
+        amplitude=np.sqrt(abs(coefficient)),
+        beta2_conditional=abs(coefficient) * saved["beta2_received_geometry_only"],
+        relative_residual=relative_all,
+        all_thread_residual=relative_all,
+        raw_rms_by_thread=np.asarray(rms).T,
+        relative_residual_by_thread=np.asarray(relative).T,
+        projected_signal_energy_fraction_by_thread=energy / energy.sum(axis=1, keepdims=True),
+        interior_shared_scale_residual=np.linalg.norm(coefficient[:, None] * ip - iy, axis=1) / np.linalg.norm(iy, axis=1),
+        interior_reprofiled_scale_residual=np.linalg.norm(interior_coefficient[:, None] * ip - iy, axis=1) / np.linalg.norm(iy, axis=1),
+        interior_quadratic_scale=interior_coefficient,
+    )
+    return result
 
 
 def conditional_bands(a, fit_threads, draws=1000):

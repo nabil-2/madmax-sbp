@@ -19,7 +19,7 @@ treated as black boxes.
      - Full-tilt 3D
    * - Measurement entering the fit
      - Magnitudes of reconstructed transverse integrals :math:`|E_T(z,\nu)|`
-     - Drift-corrected complex :math:`\Gamma` at the actual chord points
+     - Measured complex :math:`\Gamma` at the actual chord points
    * - Transverse assumption
      - Radial continuation of each measured diameter
      - Scalar diffraction model with an independent measured input beam

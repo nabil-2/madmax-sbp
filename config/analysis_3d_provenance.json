@@ -1,26 +1,34 @@
 {
   "origin_repository": "https://github.com/nabil-2/spider-bead-pull-ai",
-  "scope": "Port of corrected 7.803 mm full-tilt analysis; no fresh optimization claimed",
+  "scope": "Measured S22 without additive template correction; scale/backgrounds, conditional bands and field amplitudes updated at historical geometry.",
   "files": {
     "data/3d/measurement_inputs.npz": {
-      "sha256": "3411b3a05d0feb29528e6f26108dcc8cd98449c152ee20d82acd2b2b40a641c2",
-      "bytes": 2154619,
-      "origin_path": "src-ai/three_d/inputs/measurement_inputs.npz"
+      "bytes": 1395569,
+      "historical_origin_sha256": "3411b3a05d0feb29528e6f26108dcc8cd98449c152ee20d82acd2b2b40a641c2",
+      "historical_origin_path": "src-ai/three_d/inputs/measurement_inputs.npz",
+      "generated_by": "src/analysis_3d_inputs.py / src/analysis_3d_exports.py; outputs/no_template_correction/refresh_results.py",
+      "sha256": "57f6883377b4070bfb828c42316ea3253db9d8a6ba50e82083df45bc5f7147f6"
     },
     "data/3d/conditional_bands.npz": {
-      "sha256": "ab9f9eae1ba5822ba6bb453451d399ee123cf008ffd2c0e0030c73b754962da6",
-      "bytes": 17561,
-      "origin_path": "src-ai/refit_7p803/tilted_threads/results/conditional_bands.npz"
+      "bytes": 17955,
+      "historical_origin_sha256": "ab9f9eae1ba5822ba6bb453451d399ee123cf008ffd2c0e0030c73b754962da6",
+      "historical_origin_path": "src-ai/refit_7p803/tilted_threads/results/conditional_bands.npz",
+      "generated_by": "src/analysis_3d_inputs.py / src/analysis_3d_exports.py; outputs/no_template_correction/refresh_results.py",
+      "sha256": "d0d485e2b33fca409fae9f47cd54a7553abad6eed3e888e0ef020ba5bb066c43"
     },
     "data/3d/field_maps.npz": {
-      "sha256": "db6a6722fb9d9108842b3e1333ecd25c33cb685f550d0c752ce23b2908db752a",
-      "bytes": 1223599,
-      "origin_path": "src-ai/refit_7p803/tilted_threads/results/field_maps.npz"
+      "bytes": 1222891,
+      "historical_origin_sha256": "db6a6722fb9d9108842b3e1333ecd25c33cb685f550d0c752ce23b2908db752a",
+      "historical_origin_path": "src-ai/refit_7p803/tilted_threads/results/field_maps.npz",
+      "generated_by": "src/analysis_3d_inputs.py / src/analysis_3d_exports.py; outputs/no_template_correction/refresh_results.py",
+      "sha256": "bf5e1618b378c2fa9784eb4f85b51977218d3db38429059cbba17b9f8c96e673"
     },
     "data/3d/disk_tilts_threads.npz": {
-      "sha256": "a56d5efd386a42c013db92fc580ed20415e964466d5d0678e8032124061ac4d0",
-      "bytes": 9971892,
-      "origin_path": "src-ai/refit_7p803/tilted_threads/results/full401/disk_tilts_threads.npz"
+      "bytes": 9550973,
+      "historical_origin_sha256": "a56d5efd386a42c013db92fc580ed20415e964466d5d0678e8032124061ac4d0",
+      "historical_origin_path": "src-ai/refit_7p803/tilted_threads/results/full401/disk_tilts_threads.npz",
+      "generated_by": "src/analysis_3d_inputs.py / src/analysis_3d_exports.py; outputs/no_template_correction/refresh_results.py",
+      "sha256": "0c5db8280d0b1fe61074ea69e9ba9f643bc875b72128f580e2b53f67ceb98c8c"
     },
     "data/3d/beam_prior.npz": {
       "sha256": "455b3ef951438ec7119c90d40fbe81d1f55930fa2c29e420ea540ca6331f7105",
@@ -34,7 +42,12 @@
     "manifest_sha256": "a76e5a6d7dc489c6290f37b535032d0266b54bf5613666249dbf934ef1334bfc",
     "BoostFractor_commit": "acf4f491fe633ab05c3b8abbafe6d6288e42aba0"
   },
-  "migration_check": {
+  "reflection_preprocessing": "none",
+  "geometry_refitted": false,
+  "profile_quality_frequency_count": 35,
+  "historical_geometry_fit_frequency_count": 33,
+  "historical_corrected_products": "data/3d/history/additive_template_correction",
+  "migration_check_before_template_removal": {
     "frequency_count": 33,
     "relative_L2_errors": {
       "beta2_conditional": 4.385659861163269e-15,

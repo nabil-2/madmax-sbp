@@ -107,6 +107,21 @@ def _geometry_correction(output_dir, fields):
     return correction
 
 
+def load_measurement(run_dir):
+    """Read raw run plots independently of saved 1D reconstruction or fits."""
+    run_dir = Path(run_dir).resolve()
+    manifest = json.loads((run_dir / "scan_manifest.json").read_text())
+    frequencies, lines = sbp_analysis.load_run(run_dir)
+    indices = np.array(sorted(lines), dtype=int)
+    with h5py.File(run_dir / "s11_traces.h5", "r") as handle:
+        name = handle["s_parameter"].attrs.get("s_param", "S-parameter")
+    name = name.decode() if isinstance(name, bytes) else str(name)
+    fields = dict(sub_thread_indices=indices, z_from_mirror_m=sbp_analysis.Z_FROM_MIRROR_M[indices])
+    return PipelineData(run_dir, analysis_output_path(run_dir).parent, manifest,
+                        frequencies, lines, fields, {}, None, name,
+                        frequency_range_GHz=(20.0, 22.0))
+
+
 def load_pipeline(run_dir=None, output_dir=None, fit_3d_path=None, *, frequency_range_GHz=None):
     """Load the latest completed run and existing analysis files; perform no fits."""
     if run_dir is None:

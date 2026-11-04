@@ -1,7 +1,8 @@
-"""Prepare the raw complex S22 and external measured magnitude beam.
+"""Prepare measured complex S22 and the external measured magnitude beam.
 
 The Gaussian line fits only select geometry-fit frequencies and provide
 transverse diagnostics. They are never rotated into the 3D likelihood.
+Measured S22 is retained unchanged within the analysis frequency band.
 """
 
 from pathlib import Path
@@ -99,29 +100,13 @@ def transverse_integral(
     return np.sqrt(amplitude / kappa) * area_integral
 
 
-def fit_real_coefficient(delta, template, mask):
-    d = delta[:, mask]
-    t = template[mask]
-    weight = np.ones(d.shape, dtype=float)
-    for _ in range(6):
-        coefficient = np.sum(weight * np.real(d * t.conj()), axis=1) / np.sum(
-            weight * abs(t) ** 2, axis=1
-        )
-        residual = d - coefficient[:, None] * t
-        scale = np.maximum(np.median(abs(residual), axis=1), 1e-5)
-        weight = np.minimum(
-            1.0, 1.5 * scale[:, None] / np.maximum(abs(residual), 1e-16)
-        )
-    return coefficient
-
-
 def prepare_measurement(run_dir, output_file):
-    """Read the October run; reproduce its nuisance correction and 33-bin mask.
+    """Read measured S22 and calculate profile diagnostics and frequency quality.
 
-    Only 20–22 GHz enters any calculation. Drift is a real coefficient multiplying
-    the complex difference of the last/first five T0 edge traces, estimated with
-    six robust iterations in 21.4–22 GHz. Six recorded transition samples are
-    omitted from profile fitting and the later 3D likelihood.
+    Only 20–22 GHz enters any calculation. No additive template is subtracted
+    from the measured reflection. Six recorded transition samples are omitted
+    from profile fitting and the later 3D likelihood. Complex affine backgrounds
+    remain parameters of the downstream fits.
     """
     run_dir = Path(run_dir)
     frequency, raw = load_raw_traces(run_dir)
@@ -132,20 +117,9 @@ def prepare_measurement(run_dir, output_file):
     thread = log.sub_thread_index.to_numpy(dtype=int)
     xyz = log[["position_x_m", "position_y_m", "position_z_m"]].to_numpy()
     coord = log.position_m.to_numpy().copy()
-    t0 = np.flatnonzero(thread == 0)
-    if len(t0) < 10:
-        raise ValueError("At least ten T0 samples required")
-    template = raw[t0[-5:]].mean(0) - raw[t0[:5]].mean(0)
-    offband = (frequency >= 21.4e9) & (frequency <= 22e9)
-    if not offband.any():
-        raise ValueError("Missing nuisance calibration band")
-    coefficients = np.zeros(len(raw))
     for t in range(4):
         q = np.flatnonzero(thread == t)
-        ref = raw[q[:5]].mean(0)
-        coefficients[q] = fit_real_coefficient(raw[q] - ref, template, offband)
         coord[q] -= 0.5 * (coord[q[0]] + coord[q[-1]])
-    corrected = raw - coefficients[:, None] * template
     transient = np.isin(log.trace_index, TRANSIENT_IDS)
     nf = len(frequency)
     params = np.empty((4, nf, 3))
@@ -157,7 +131,7 @@ def prepare_measurement(run_dir, output_file):
         u = coord[q] / 0.1
         previous = None
         for k, f in enumerate(frequency):
-            p, c, rms, fraction, ok = fit_profile(u, corrected[q, k], previous)
+            p, c, rms, fraction, ok = fit_profile(u, raw[q, k], previous)
             previous = p if ok else None
             params[t, k] = p
             fits[t, k] = c
@@ -173,7 +147,8 @@ def prepare_measurement(run_dir, output_file):
         shared_fit_mask=quality[:, 1:].all(1),
         gaussian_parameters=params,
         gaussian_coefficients=fits,
-        corrected_S22=corrected,
+        observed_S22=raw,
+        reflection_preprocessing="none",
         trace_index=log.trace_index.to_numpy(),
         thread_index=thread,
         transverse_xyz_log_m=xyz,
@@ -181,6 +156,19 @@ def prepare_measurement(run_dir, output_file):
         transient_trace_mask=transient,
     )
     return output_file
+
+
+def load_measurement(path):
+    """Load uncorrected measurements; reject old template-corrected products."""
+    with np.load(path, allow_pickle=False) as archive:
+        if "observed_S22" not in archive or "reflection_preprocessing" not in archive:
+            raise ValueError(
+                "This 3D measurement input predates removal of the additive template "
+                "correction. Regenerate it with prepare_measurement(run_dir, output_file)."
+            )
+        if archive["reflection_preprocessing"].item() != "none":
+            raise ValueError("3D analysis requires measured S22 without template correction.")
+        return dict(archive)
 
 
 def prepare_beam(csv_file, output_file, frequencies_hz):

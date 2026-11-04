@@ -31,7 +31,13 @@ UNCERTAINTY = "Shading is the conditional pointwise 16–84% residual-bootstrap 
 def load(path):
     """Load numeric NPZ arrays without pickle."""
     with np.load(path, allow_pickle=False) as archive:
-        return dict(archive)
+        result = dict(archive)
+    if "observed_S22" in result and (
+        "reflection_preprocessing" not in result
+        or result["reflection_preprocessing"].item() != "none"
+    ):
+        raise ValueError("Saved 3D results use the removed template correction; regenerate results from measured S22.")
+    return result
 
 
 def disk_shifts_mm(faces):
@@ -121,7 +127,10 @@ def boost_figures(
                 stem,
                 "Conditional boost" + suffix,
                 UNCERTAINTY
-                + f" One common complex scale uses {SCOPE}. The 33 selected bins determine geometry; other frequencies are diagnostics.",
+                + f" One common complex scale uses {SCOPE}. "
+                + f"{int(np.sum(a['eligible']))} bins pass the measurement profile-quality selection; other frequencies are diagnostics. "
+                + ("The saved geometry is held fixed while scale and backgrounds are refitted to measured S22."
+                   if "geometry_refitted" in a and not bool(a["geometry_refitted"]) else ""),
             )
         )
     return entries
@@ -208,7 +217,7 @@ def profile_figures(
                 fig,
                 "raw_profiles_" + f"{f:.3f}".replace(".", "p"),
                 f"Complex profiles · {f:.3f} GHz",
-                "Measured corrected S22 and the saved model after subtracting the same fitted affine background, in dimensionless complex reflection units. "
+                "Measured S22 and the saved model after subtracting the same fitted affine background, in dimensionless complex reflection units. "
                 f"{SCOPE_DESCRIPTION} Each sample is evaluated at its saved z; labels give A→B endpoint heights at minimum/maximum retained signed scan coordinate. "
                 "Vertical ranges differ by component and thread but are matched between the two displayed frequencies.",
             )
@@ -924,7 +933,7 @@ def residual_figure(
     combined_y_label="Combined residual [%]",
     individual_y_label="Individual residual [%]",
     objective_label_template="Fitted objective · {scope}",
-    fit_bins_label_template="{fit_bin_count} geometry-fit bins",
+    fit_bins_label_template="{fit_bin_count} quality-selected bins",
     control_label="New fixed-thread tilts · same all-four objective",
     thread_label_template="T{thread_index}{held_out}",
     held_out_label=" · held out",
@@ -985,11 +994,12 @@ def residual_figure(
         fig,
         "objective_comparison",
         "Combined and individual-thread residuals",
-        f"The upper curve uses {SCOPE}; dots mark the 33 geometry-fit bins. The lower panel uses a logarithmic vertical scale and the same fitted common coefficient on every thread. "
+        f"The upper curve uses {SCOPE}; dots mark the {int(use.sum())} profile-quality-selected bins. The lower panel uses a logarithmic vertical scale and the same fitted common coefficient on every thread. "
         + (
             "T0 is a held-out prediction and does not determine the common coefficient. "
             if len(FIT_THREADS) == 3
-            else "The dashed control uses the new fixed-thread tilt geometry, with its common coefficient reprofiled on the same four chords; geometry is not refitted for this diagnostic. "
+            else ("The dashed control uses the new fixed-thread tilt geometry, with its common coefficient reprofiled on the same four chords; geometry is not refitted for this diagnostic. "
+                  if control is not None else "")
         )
         + "Equal sample weights within a frequency give stronger signals more influence. A small pooled residual does not imply agreement on each weak thread.",
     )

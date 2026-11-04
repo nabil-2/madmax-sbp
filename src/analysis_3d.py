@@ -14,6 +14,7 @@ from .receive_field import NOM_DISKS_MM, NOM_THREADS_MM
 from .tilted_disks import TiltedReceiveModel
 from .exterior_field import ExteriorLineEvaluator
 from .analysis_band import require_analysis_band
+from .analysis_3d_inputs import load_measurement
 
 NOM_Z_MM = np.r_[32.011, NOM_THREADS_MM]
 NAMES = (
@@ -47,17 +48,20 @@ class EndpointFitProblem:
         clearance_margin_mm=0.0,
     ):
         self.bank = Path(bank)
+        data = load_measurement(measurement_path)
         self.model = TiltedReceiveModel(bank, beam_path=beam_path)
         self.f = self.model.f
         self.fit_threads = tuple(fit_threads)
         self.tilt_bound = tilt_bound
         self.endpoint_bound = endpoint_bound
         self.clearance_margin_mm = float(clearance_margin_mm)
-        data = np.load(measurement_path)
-        require_analysis_band(data["frequency_hz"], "3D preprocessed measurement input")
+        require_analysis_band(data["frequency_hz"], "3D measurement input")
         ix = np.searchsorted(data["frequency_hz"], self.f)
         np.testing.assert_array_equal(data["frequency_hz"][ix], self.f)
         self.eligible = data["shared_fit_mask"][ix]
+        self.missing_fit_frequencies = np.setdiff1d(
+            data["frequency_hz"][data["shared_fit_mask"]], self.f
+        )
         m = self.model
         interpolation = RegularGridInterpolator(
             (m.x, m.y), m.B.reshape((len(m.x), len(m.y), m.n), order="F")
@@ -71,7 +75,7 @@ class EndpointFitProblem:
             fraction = (u - u.min()) / (u.max() - u.min())
             weights = np.column_stack([1 - fraction, fraction])
             np.testing.assert_allclose(weights @ endpoints, xy, atol=1e-14)
-            y = data["corrected_S22"][take][:, ix].T
+            y = data["observed_S22"][take][:, ix].T
             X = np.column_stack([np.ones(len(u)), u / 0.1])
             inv = np.linalg.pinv(X)
             projection = np.eye(len(u)) - X @ inv
@@ -395,7 +399,8 @@ def summarize(p, q, details):
         family="disk_tilts_threads",
         parameter_order=NAMES,
         parameters=q.tolist(),
-        fit_observable="Complex corrected S22 on each fitted physical scan chord, with pointwise z along the straight thread.",
+        fit_observable="Measured complex S22 on each fitted physical scan chord, with pointwise z along the straight thread.",
+        reflection_preprocessing="none",
         fit_threads=list(p.fit_threads),
         held_out_threads=[t for t in range(4) if t not in p.fit_threads],
         geometry_frequency_count=int(sum(p.eligible)),
@@ -447,6 +452,7 @@ def summarize(p, q, details):
     )
     arr = dict(
         frequency_hz=p.f,
+        reflection_preprocessing="none",
         eligible=p.eligible,
         parameters=q,
         observed_S22=np.concatenate([l["y"] for l in p.lines], axis=1),
@@ -495,6 +501,11 @@ def fit_full_tilt(problem, initial=None, *, maxiter=180):
         raise ValueError("Initial geometry must be a feasible 17-vector")
     if not np.any(problem.eligible):
         raise ValueError("No eligible geometry-fit frequencies in the bank")
+    if len(problem.missing_fit_frequencies):
+        raise ValueError(
+            "The propagation bank is missing quality-selected measurement frequencies. "
+            "Rebuild it with src/build_bank.jl and the current config/3d_bank.toml."
+        )
     if tuple(problem.fit_threads) != (0, 1, 2, 3):
         raise ValueError(
             "This full-tilt fitting wrapper requires T0–T3; held-out endpoints are unidentifiable"

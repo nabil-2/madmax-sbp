@@ -42,6 +42,10 @@ do not enter the spider reconstruction or fit.
 Full bead pull vs 3D
 --------------------
 
+The spider curves use measured S22 without the former additive template
+correction. Scale, backgrounds and conditional bands are reevaluated at the
+saved 3D geometry; the geometry has not been reoptimized after that removal.
+
 .. Exported by sbp_3d_analysis.ipynb from
    plots/3d/full_tilt/full_bead_comparison/fields_full_reference_20p825.png
 

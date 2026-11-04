@@ -326,7 +326,7 @@ residuals, and the full-pull comparison. The figures use the original corrected
 full-tilt report plotting code, including separate disk projection and adjustment
 figures. Notebook outputs are included; large measurements and banks are not.
 
-The likelihood uses corrected **complex S22 samples directly**, at their actual
+The likelihood uses measured **complex S22 samples directly**, at their actual
 recorded x/y and fitted z. It fits three disk shifts, two slopes per disk and two
 endpoint heights per straight thread: **17 shared geometry parameters**. Per
 frequency it solves analytically for a common complex response coefficient and
@@ -334,7 +334,7 @@ per-thread complex affine backgrounds. Boost follows from the model's receive
 coupling multiplied by the magnitude of that coefficient. It is not fitted as
 an independent spectral curve.
 
-- `src/analysis_3d_inputs.py`: raw run → corrected S22, profile diagnostics,
+- `src/analysis_3d_inputs.py`: raw run → unchanged measured S22, profile diagnostics,
   selected-frequency mask; beam CSV → six-profile input parameters.
 - `src/receive_field.py`, `src/tilted_disks.py`: modal propagation and tilted
   scattering interfaces, using the original BoostFractor matrix-bank format.
@@ -351,20 +351,30 @@ The independent beam scan contains six Gaussian **magnitude** profiles at scan
 z = 50–100 mm. Their coordinate origin is not registered to the spider mirror.
 The model combines them at the outer reference face, assumes flat phase and
 normalizes their whole-plane power to 1 W. Preliminary Gaussian fits to spider
-chords select the 33 geometry-fit bins; they do not supply a rotated field to
+chords select the quality frequencies; they do not supply a rotated field to
 the 3D model. The radial reconstruction in the 1D notebook is a separate path.
 
 Local data in `data/3d/` comprise `measurement_inputs.npz`, `beam_prior.npz`,
 `disk_tilts_threads.npz`, `conditional_bands.npz`, `field_maps.npz` and `bank/`.
-Their original relative paths and SHA-256 hashes are recorded in
+Their source history and current SHA-256 hashes are recorded in
 [config/analysis_3d_provenance.json](config/analysis_3d_provenance.json).
 [config/full_tilt_geometry.json](config/full_tilt_geometry.json) keeps the fitted
 17-vector, units, corrected nominal positions and measured relative slopes.
 The notebook has optional cells to prepare inputs, run a new single-start fit,
 and export results. These switches default to off; loading a notebook does not
-start an optimization. The original saved result used multiple starts.
+start an optimization. No additive endpoint-template correction is applied.
+Old corrected inputs are rejected by the measurement loader.
 
-The 120-mode local bank contains the 33 geometry-fit frequencies. A bank with
+The local spectra, backgrounds, conditional bands and field amplitudes have
+been recomputed from measured S22 at the saved geometry. **The 17 geometry
+parameters have not been reoptimized after removing the correction.** The
+original geometry used 33 frequencies; the raw-data profile-quality mask now
+selects 35. The result keeps these masks separate. The original corrected
+products are archived locally under `data/3d/history/additive_template_correction/`.
+
+The 120-mode local bank contains the historical 33 geometry-fit frequencies.
+Rebuild it with the updated configuration before a new fit, which requires all
+35 raw-data quality-selected frequencies. A bank with
 all 401 bins is needed to recompute a 20–22 GHz dense curve; the included local
 saved spectrum already covers that band. To build a bank with Julia 1.10+:
 
@@ -380,12 +390,14 @@ under `data/3d/`; edit its frequency list for a dense export. Python optimizatio
 uses the resulting small modal matrices on CPU. The builder preserves the
 original matrix calculation; it was not rerun during this migration.
 
-Quick numerical check: at all 33 geometry-fit frequencies, this port reproduces
+Historical migration check, before removing the template correction: at all
+33 geometry-fit frequencies, this port reproduced
 the original full-tilt boost, common scale, predicted complex S22, directional
 fields and pointwise heights. Relative L2 differences were below **2×10⁻¹⁴**.
-Raw preprocessing also reproduced every saved input array, including the 33-bin
-mask; the six-profile beam parameters were bit-identical. Both analysis notebooks
-were executed with copied original measurements/results.
+The former preprocessing reproduced every saved input array, including the
+33-bin mask; the six-profile beam parameters were bit-identical. Those checks
+describe the imported historical results. The current 3D notebook uses measured
+S22 and regenerated local outputs.
 This migration does not establish a better physical fit: fitted bounds remain
 active, weak-thread residuals remain large, and the shaded bootstrap interval
 keeps geometry, beam and calibration fixed.

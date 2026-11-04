@@ -37,8 +37,8 @@ first/last 25 mm:
       |\Gamma(s,\nu)-b_0-b_1s/L|^2,\qquad
    \Delta\Gamma(s,\nu)=\Gamma(s,\nu)-b_0-b_1s/L.
 
-Set :math:`\Delta\Gamma=0` in those edge windows. This preparation uses neither
-time gating nor the 3D drift correction.
+Set :math:`\Delta\Gamma=0` in those edge windows. This preparation does not use
+time gating.
 
 2. Reconstruct the transverse integrals
 ---------------------------------------

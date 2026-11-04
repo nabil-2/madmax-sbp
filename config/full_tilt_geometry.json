@@ -122,7 +122,7 @@
     2,
     3
   ],
-  "pooled_relative_rms": 0.2776705562136228,
+  "pooled_relative_rms": 0.30402259334504994,
   "uncertainty_scope": "Conditional complex-residual bootstrap with geometry and beam fixed; excludes geometry, beam, calibration and model uncertainty.",
   "endpoint_definition": "A=min and B=max retained signed scan coordinate; actual recorded XY endpoints, not measured mechanical supports.",
   "nominal_disk_nearface_z_mm": [
@@ -136,7 +136,7 @@
     13.2295,
     3.9015
   ],
-  "scope": "Saved conditional result, not an independently validated geometry.",
+  "scope": "Historical 17-parameter geometry held fixed; common scale, affine backgrounds and conditional bands reevaluated using measured S22 without template correction.",
   "nominal_disk_slopes_mrad": [
     [
       0.0018324466666666665,
@@ -153,5 +153,10 @@
   ],
   "fit_details": {
     "endpoint_adjustment_bound_mm": 2.0
-  }
+  },
+  "reflection_preprocessing": "none",
+  "geometry_refitted": false,
+  "original_geometry_pooled_relative_rms": 0.2776705562136228,
+  "profile_quality_frequency_count": 35,
+  "historical_geometry_fit_frequency_count": 33
 }
