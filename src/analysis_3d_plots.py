@@ -846,7 +846,7 @@ def field_map_figures(
         raise ValueError("Choose electric_field or delta_gamma for horizontal sections.")
     reflection = observable == "delta_gamma"
     frequencies = FREQUENCIES if frequencies_GHz is None else tuple(frequencies_GHz)
-    cmap = ("magma" if reflection else "viridis") if cmap is None else cmap
+    cmap = ("cividis" if reflection else "viridis") if cmap is None else cmap
     x, y = maps["x_m"] * 1000, maps["y_m"] * 1000
     z = maps.get("thread_midpoint_z_mm", maps.get("thread_z_mm"))
     np.testing.assert_allclose(
