@@ -135,30 +135,31 @@ nominal-geometry penalty in this 3D objective.
 
 The bead-response formula is Eq. (5.6) of
 `Egge et al., JCAP 04 (2024) 005 <https://arxiv.org/pdf/2311.13359#page=12>`_.
-Its field-dependent part is
+In the paper's notation, the full equation is
 
 .. math::
 
-   \delta_e\left(A_+^2e^{-2ikz}+A_-^2e^{+2ikz}\right)
-      +2\delta_c A_+A_-.
+   \frac{4P_{\mathrm{in}}\Delta\Gamma}{i\omega\alpha_0}
+      =\delta_e^+\left(E_+^2e^{-2ikz}+E_-^2e^{+2ikz}\right)
+       +2\delta_c^+E_+E_-.
 
-The exponential factors describe propagation to the bead position. Writing
-local wave amplitudes as :math:`e_+=A_+e^{-ikz}` and
-:math:`e_-=A_-e^{+ikz}` turns these terms into
+The exponential factors describe propagation to the bead position. With local
+wave amplitudes :math:`e_+=E_+e^{-ikz}` and :math:`e_-=E_-e^{+ikz}`, and
+writing :math:`\delta_e,\delta_c` for :math:`\delta_e^+,\delta_c^+`, the
+right-hand side becomes
 
 .. math::
 
    Q=\delta_e(e_+^2+e_-^2)+2\delta_c e_+e_-.
 
-The 3D model already supplies the local inward/outward fields, including their
-propagation phases. ``finite_bead_field`` in :codefile:`src/receive_field.py`
-converts them to the Mie-factor phasor convention using
+The 3D model supplies the local inward/outward fields, including their
+propagation phases. In the Mie-factor phasor convention these are
 :math:`e_-=F_{\mathrm{inward}}^*` and
-:math:`e_+=F_{\mathrm{outward}}^*`, then evaluates :math:`Q` above.
+:math:`e_+=F_{\mathrm{outward}}^*`; they are substituted into :math:`Q` above.
 The factors :math:`\delta_e,\delta_c` come from the paper's Appendix B.
 
-Restoring the SI prefactor from the paper's Eq. (3.1), in the conventions
-used by the code, gives the simulated bead-induced reflection:
+Using the SI prefactor from the paper's Eq. (3.1) and our phasor conventions
+gives the simulated bead-induced reflection:
 
 .. math::
 
@@ -169,9 +170,8 @@ used by the code, gives the simulated bead-induced reflection:
 Here :math:`\omega=2\pi\nu` and :math:`P_{\mathrm{in}}=1\,\mathrm W`.
 The conjugations convert between the solver, Mie and recorded-S22 phasor
 conventions; :math:`\epsilon_0` is explicit because this :math:`\alpha_0`
-has units of volume. This is exactly ``np.conj(self.kappa[:, None] * Q)``
-in :codefile:`src/analysis_3d.py`. Step 6 fits its common complex scale and
-adds the affine backgrounds to compare with measured S22.
+has units of volume. Step 6 fits the common complex scale and adds the affine
+backgrounds to compare with measured S22.
 
 6. Profile the backgrounds and common complex scale
 ---------------------------------------------------
