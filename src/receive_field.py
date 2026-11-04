@@ -10,6 +10,7 @@ import tomllib
 import numpy as np
 from scipy.interpolate import make_interp_spline
 from .bead_response import bead_factors
+from .analysis_band import require_analysis_band
 
 C = 299792458.0
 Z0 = 376.730313668
@@ -36,6 +37,7 @@ class ReceiveModel:
         self.meta, self.arr = read_bank(bank_path, verify)
         a = self.arr
         self.f = a["frequencies_hz"]
+        require_analysis_band(self.f, "3D propagation bank")
         self.ds = a["distances_m"]
         self.n = len(a["kt_per_m"])
         self.gram = a["gram"]
@@ -67,6 +69,8 @@ class ReceiveModel:
         )
         self.de, self.dc = bead_factors(self.f)
         self.beam = None if beam_path is None else np.load(beam_path)
+        if self.beam is not None:
+            require_analysis_band(self.beam["frequencies_hz"], "3D incident-beam input")
         self.last = None
         self._illumination_cache = None
 

@@ -18,6 +18,7 @@ conversion convention; longitudinal finite-bead correction remains downstream.
 The square-root branch is continuous in radius and frequency but retains an
 overall sign ambiguity for each sub-thread.
 This version performs no time gating, beam-shape fit, or uncertainty estimation.
+Raw frequencies outside 20–22 GHz are discarded before all preprocessing.
 """
 
 from __future__ import annotations
@@ -28,15 +29,16 @@ import json
 from dataclasses import dataclass
 from pathlib import Path
 
-import h5py
 import numpy as np
 from scipy.integrate import trapezoid
 from scipy.interpolate import interp1d
 from scipy.optimize import minimize_scalar
 
 if __package__:
+    from .analysis_band import frequency_mask, load_raw_traces
     from .data_paths import analysis_output_path
 else:
+    from analysis_band import frequency_mask, load_raw_traces
     from data_paths import analysis_output_path
 
 
@@ -77,8 +79,9 @@ class LineResult:
 
 
 def load_run(run_dir: str | Path) -> tuple[np.ndarray, dict[int, LineData]]:
-    """Join logged positions to HDF5 traces by trace_index, using the run's calibration."""
+    """Load only 20–22 GHz, then join calibrated positions by trace_index."""
     run_dir = Path(run_dir)
+    frequencies, traces = load_raw_traces(run_dir)
     manifest = json.loads((run_dir / "scan_manifest.json").read_text())
     calibration = {int(sub["index"]): sub for sub in manifest["calibration"]["sub_threads"]}
     log = run_dir / "scan_log.jsonl"
@@ -89,12 +92,6 @@ def load_run(run_dir: str | Path) -> tuple[np.ndarray, dict[int, LineData]]:
             records = list(csv.DictReader(stream))
         for record in records:
             record["measurement"] = json.loads(record["measurement_json"])
-
-    with h5py.File(run_dir / "s11_traces.h5", "r") as handle:
-        frequencies = np.asarray(handle["frequencies_Hz"], dtype=float)
-        traces = np.asarray(handle["s_parameter"], dtype=complex)
-    if traces.ndim != 2 or traces.shape[1] != frequencies.size:
-        raise ValueError("The trace array must have shape (measurement point, frequency).")
 
     grouped: dict[int, list[tuple[float, int]]] = {}
     for record in records:
@@ -168,12 +165,14 @@ def fit_beam_center(position_m: np.ndarray, delta: np.ndarray, length_m: float) 
 
 
 def analyze_line(position_m, traces, frequencies_Hz, length_m: float) -> LineResult:
-    """Subtract, centre, fold, and integrate one measured diameter."""
+    """Restrict to 20–22 GHz, then subtract, centre, fold and integrate."""
     position = np.asarray(position_m, dtype=float)
     traces = np.asarray(traces, dtype=complex)
     frequencies = np.asarray(frequencies_Hz, dtype=float)
     if position.ndim != 1 or frequencies.ndim != 1 or traces.shape != (position.size, frequencies.size):
         raise ValueError("Expected positions (point,), frequencies (frequency,), traces (point, frequency).")
+    keep = frequency_mask(frequencies)
+    frequencies, traces = frequencies[keep], traces[:, keep]
     if (not np.all(np.isfinite(position)) or not np.all(np.isfinite(traces))
             or not np.all(np.isfinite(frequencies)) or np.any(frequencies <= 0)):
         raise ValueError("Positions and traces must be finite; frequencies must be finite and positive.")

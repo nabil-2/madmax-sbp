@@ -13,6 +13,7 @@ from scipy.optimize import minimize, LinearConstraint
 from .receive_field import NOM_DISKS_MM, NOM_THREADS_MM
 from .tilted_disks import TiltedReceiveModel
 from .exterior_field import ExteriorLineEvaluator
+from .analysis_band import require_analysis_band
 
 NOM_Z_MM = np.r_[32.011, NOM_THREADS_MM]
 NAMES = (
@@ -53,6 +54,7 @@ class EndpointFitProblem:
         self.endpoint_bound = endpoint_bound
         self.clearance_margin_mm = float(clearance_margin_mm)
         data = np.load(measurement_path)
+        require_analysis_band(data["frequency_hz"], "3D preprocessed measurement input")
         ix = np.searchsorted(data["frequency_hz"], self.f)
         np.testing.assert_array_equal(data["frequency_hz"][ix], self.f)
         self.eligible = data["shared_fit_mask"][ix]

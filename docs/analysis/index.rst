@@ -57,8 +57,10 @@ antenna. Positions below are **central near faces**, not disk centres.
 
 The scan logs supply measured **x/y**; their original z column is not a registered
 booster coordinate. The supplied geometry determines nominal analysis z.
-The saved 1D fits use the original 12–22 GHz fit band; displayed plots and optional
-new 1D fits select 20–22 GHz. The 3D preparation and fit use only 20–22 GHz.
+Both pipelines discard raw frequencies outside 20–22 GHz before preprocessing.
+The saved 1D results and rendered figures still use the previous 12–22 GHz
+analysis and await reprocessing; the 3D results were already restricted to
+20–22 GHz. Out-of-band saved inputs are rejected by the updated pipeline.
 
 Units and plot exports
 ----------------------

@@ -20,6 +20,7 @@ from .fit_1D import ModelConfig as _FitPlotConfig, evaluate_model as _fitplot_ev
 from . import sbp_analysis
 from .data_paths import DATA_DIR, OUTPUTS_DIR, REFERENCE_DATA_DIR, analysis_output_path
 from .plot_text import render_text
+from .analysis_band import require_analysis_band
 
 
 _THREAD_COLORS = {0: "#3b6fb6", 1: "#db7b32", 2: "#2a9d8f", 3: "#9c4f96"}
@@ -125,6 +126,7 @@ def load_pipeline(run_dir=None, output_dir=None, fit_3d_path=None, *, frequency_
             f"No saved transverse analysis at {archive_path}. Create it first with:\n"
             f"uv run python -m src.sbp_analysis {run_dir} -o {archive_path}")
     fields = _read_npz(archive_path)
+    require_analysis_band(fields["frequencies_Hz"], f"Saved reconstruction {archive_path}")
     correction = _geometry_correction(output_dir, fields)
     previous_geometry = correction["previous_geometry"] if correction is not None else None
     frequencies, lines = sbp_analysis.load_run(run_dir)
@@ -141,6 +143,7 @@ def load_pipeline(run_dir=None, output_dir=None, fit_3d_path=None, *, frequency_
     fits = {}
     for path in sorted(output_dir.glob("integrated_fields_fit_1D*.npz")):
         fit = _read_npz(path)
+        require_analysis_band(fit["frequencies_Hz"], f"Saved 1D fit {path}")
         mode = str(fit.get("fit_method", "fixed"))
         fits[mode] = fit
     spatial = None

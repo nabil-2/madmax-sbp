@@ -15,7 +15,9 @@ thread paths. The booster model is treated as a black box.
 1. Prepare the measured reflection
 ----------------------------------
 
-Keep measured :math:`\Gamma` only over 20–22 GHz and align the scan log by ``trace_index``. Construct a
+Read only raw :math:`\Gamma` columns within the inclusive 20–22 GHz band before
+any drift correction, profile fitting or frequency selection. The same raw-data
+loader is used by the 1D pipeline. Align the scan log by ``trace_index``. Construct a
 complex drift template T from the last five minus first five T0 traces.
 For every point i on thread j, let :math:`\Delta\Gamma_i^{\mathrm{edge}}(\nu)=\Gamma_i(\nu)-\bar\Gamma_{j,\mathrm{first5}}(\nu)`.
 Fit a **real** template coefficient only in :math:`\mathcal C=[21.4,22]` GHz:
@@ -81,6 +83,7 @@ reciprocity approach*, `JCAP 04 (2024) 005
 3. Supply the independent incident beam
 ---------------------------------------
 
+Discard transmission-beam samples outside 20–22 GHz before interpolation.
 Interpolate the six independent transmission-beam (:math:`S_{31}`) Gaussian
 magnitude fits in frequency. At each :math:`\nu`:
 

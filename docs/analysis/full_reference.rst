@@ -8,6 +8,9 @@ Click any plot to view it at full resolution.
 Full bead pull vs 1D
 --------------------
 
+These saved 1D figures predate the change to filtering raw data before all
+processing. Reanalysis using only 20–22 GHz is pending.
+
 .. Exported by sbp_1d_analysis.ipynb from
    plots/1d/full_bead_comparison/both/24_field_comparison_resonance.png
 

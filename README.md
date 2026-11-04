@@ -276,14 +276,20 @@ data/full_bead_pull/result_bf_21_0.jld2
 
 These files are deliberately excluded from Git. They have been copied into the
 local checkout; another checkout needs its own measurement files to rerun the
-notebook. The saved figures remain viewable without them. The final optional
-cell recomputes the fields and all four fits using **20–22 GHz only**. The
-initial saved 1D results match the original notebook's full-sweep fit; selecting
-20–22 GHz for those figures does not change its fitted geometry.
+notebook. The saved figures remain viewable without them. Both measurement
+pipelines discard raw frequencies outside **20–22 GHz before preprocessing**.
+This includes baseline estimation, centre finding, phase unwrapping and fitting;
+the 3D beam CSV is also restricted before interpolation.
 
-Quick migration check: the numerical modules are copied unchanged; plotting uses SciPy
-trapezoidal integration for compatibility with older notebook kernels; the new import reproduced saved fitted fields at 20.7, 20.825 and
-21 GHz to numerical precision. The notebook was executed with the copied data.
+The optional recompute cells near the top of the 1D notebook regenerate the
+fields and all four fits before loading results. They remain disabled. Existing
+saved 1D results and rendered figures still use the earlier 12–22 GHz analysis;
+no reanalysis has been run since changing the filter. The updated pipeline
+rejects these old out-of-band products instead of silently cropping them.
+
+The initial migration check, before changing the frequency restriction,
+reproduced the original fitted fields at 20.7, 20.825 and 21 GHz to numerical
+precision. The committed rendered figures come from that earlier execution.
 
 
 ## 3D analysis with disk and thread tilts

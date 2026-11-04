@@ -6,12 +6,12 @@ transverse diagnostics. They are never rotated into the 3D likelihood.
 
 from pathlib import Path
 import json
-import h5py
 import numpy as np
 import pandas as pd
 from scipy.optimize import least_squares
 from scipy.special import iv
 from numpy.polynomial.legendre import leggauss
+from .analysis_band import frequency_mask, load_raw_traces, require_analysis_band
 
 EPS0 = 8.8541878128e-12
 TRANSIENT_IDS = [73, 74, 192, 193, 194, 195]
@@ -124,11 +124,7 @@ def prepare_measurement(run_dir, output_file):
     omitted from profile fitting and the later 3D likelihood.
     """
     run_dir = Path(run_dir)
-    with h5py.File(run_dir / "s11_traces.h5") as h:
-        full = h["frequencies_Hz"][:]
-        band = np.flatnonzero((full >= 20e9) & (full <= 22e9))
-        frequency = full[band]
-        raw = h["s_parameter"][:, band]
+    frequency, raw = load_raw_traces(run_dir)
     log = pd.read_csv(run_dir / "scan_log.csv")
     ids = np.array([json.loads(v)["trace_index"] for v in log.measurement_json])
     log = log.assign(trace_index=ids).sort_values("trace_index").reset_index(drop=True)
@@ -190,13 +186,16 @@ def prepare_measurement(run_dir, output_file):
 def prepare_beam(csv_file, output_file, frequencies_hz):
     """Interpolate the six measured Gaussian magnitude profiles, without phase.
 
+    Samples outside 20–22 GHz are discarded before interpolation.
     CSV columns: frequency_Hz, scan_z_m, amplitude, field_1/e_radius_m, x0_m, y0_m.
     Scan z has no registered mapping to the spider mirror. The receive model
     averages these profiles at its outer reference face and normalizes their
     whole-plane power to 1 W. No free-space transport from the scan z is inferred.
     """
     table = np.loadtxt(csv_file, delimiter=",", comments="#")
+    table = table[frequency_mask(table[:, 0])]
     f = np.asarray(frequencies_hz)
+    require_analysis_band(f, "3D incident-beam frequencies")
     z = np.unique(table[:, 1])
     for zz in z:
         rows = table[table[:, 1] == zz]

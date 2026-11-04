@@ -7,8 +7,17 @@ Notebook: :notebook:`sbp_1d_analysis.ipynb`.
 Field reconstruction: :codefile:`src/sbp_analysis.py`.
 Fitting model: the planar multilayer 1D booster in :codefile:`src/fit_1D.py`.
 
+The code now discards frequencies outside **20–22 GHz before preprocessing**.
+Existing saved fits and rendered figures still come from the earlier 12–22 GHz
+analysis; they have not been recomputed. Old out-of-band products are rejected
+when loading results for the updated pipeline.
+
 1. Read traces and subtract the reference
 -----------------------------------------
+
+Read only the raw trace columns with :math:`20\leq\nu/\mathrm{GHz}\leq22`.
+All subsequent background estimation, centre finding, phase unwrapping,
+integration and fitting use only these frequencies.
 
 Bind scan-log positions to HDF5 traces by ``trace_index``; average repeated
 physical positions before interpolation. For each calibrated thread of length L,

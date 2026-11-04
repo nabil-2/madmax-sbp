@@ -34,8 +34,10 @@ from scipy.optimize import least_squares
 from scipy.special import spherical_jn, spherical_yn
 
 if __package__:
+    from .analysis_band import require_analysis_band
     from .data_paths import fit_output_path
 else:
+    from analysis_band import require_analysis_band
     from data_paths import fit_output_path
 
 
@@ -237,6 +239,9 @@ def fit_1d(frequencies_Hz, z_from_mirror_m, ET, *, config=ModelConfig(),
            position_bound_m=0.5e-3, geometry_penalty=1e-3) -> FitResult:
     """Fit |ET|, profiling out one nonnegative amplitude per frequency.
 
+    ET must be reconstructed from raw data restricted to 20–22 GHz. A saved
+    full-sweep reconstruction must be regenerated before fitting.
+
     Adjustable geometry is shared across the spectrum: one value per gap and
     one z coordinate per measurement plane. Each may move by at most its bound
     from the measured value. The objective is
@@ -250,6 +255,7 @@ def fit_1d(frequencies_Hz, z_from_mirror_m, ET, *, config=ModelConfig(),
     geometry parameters can be correlated even when the fit converges.
     """
     frequency, z = _axes(frequencies_Hz, z_from_mirror_m)
+    require_analysis_band(frequency, "1D reconstructed field input")
     z_nominal = z.copy()
     gaps_nominal = np.asarray(config.gap_widths_m)
     measured = np.asarray(ET, dtype=complex)
