@@ -1,0 +1,45 @@
+{
+  "source_repository": "madmax-omc",
+  "source_directory": "data/raw/disk-measurements",
+  "height_unit": "mm",
+  "height_scale_m": 0.001,
+  "grid_step_m": 0.0025,
+  "axis_index_zero_based": [
+    199,
+    199
+  ],
+  "booster_disk_measured_disk_order": [
+    2,
+    3,
+    1
+  ],
+  "face_A": "mirror-facing; axial departure is minus the recorded height",
+  "face_B": "antenna-facing; axial departure is plus the recorded height",
+  "coordinate_registration": "Same x/y axes and disk order as the spider setup, confirmed by the user.",
+  "files": {
+    "alignedDisk1_A_25e-1mm_concave.txt": {
+      "sha256": "adf1209ba94a28edbbd76998b826226da33f4b40ded308e6ad6107b153eadb7e",
+      "bytes": 4025992
+    },
+    "alignedDisk1_B_25e-1mm_concave.txt": {
+      "sha256": "51f0d09b6ccf9035f9805217e6d33f884861bd28544082c5abcc59d85c1372b9",
+      "bytes": 4025684
+    },
+    "alignedDisk2_A_25e-1mm_concave.txt": {
+      "sha256": "dc12b583311a27660dd54b9ebbe5c2303d53470c93e5744a9746fe0e7ced27a5",
+      "bytes": 4026019
+    },
+    "alignedDisk2_B_25e-1mm_concave.txt": {
+      "sha256": "dbc524f07878ce2be7162d09dda3df351bdf94455ef1a8b00c26698c6f9f033d",
+      "bytes": 4025181
+    },
+    "alignedDisk3_A_25e-1mm_concave.txt": {
+      "sha256": "15b9e476a962b4a4612ccb1a3f6326f4e52000f2eeebb3cab5291d706dd9d4df",
+      "bytes": 4025569
+    },
+    "alignedDisk3_B_25e-1mm_concave.txt": {
+      "sha256": "4aee4082e2eb774811248a4430a28b17124bcd6118f789f05bbf130f5b8be16e",
+      "bytes": 4025619
+    }
+  }
+}

@@ -177,8 +177,10 @@ def prepare_beam(csv_file, output_file, frequencies_hz):
     Samples outside 20–22 GHz are discarded before interpolation.
     CSV columns: frequency_Hz, scan_z_m, amplitude, field_1/e_radius_m, x0_m, y0_m.
     Scan z has no registered mapping to the spider mirror. The receive model
-    averages these profiles at its outer reference face and normalizes their
-    whole-plane power to 1 W. No free-space transport from the scan z is inferred.
+    centres each fitted profile on the disk axis, combines them at its outer
+    reference face and normalizes their whole-plane power to 1 W. Stored fit
+    parameters retain the measured centres. No free-space transport from the
+    scan z is inferred.
     """
     table = np.loadtxt(csv_file, delimiter=",", comments="#")
     table = table[frequency_mask(table[:, 0])]

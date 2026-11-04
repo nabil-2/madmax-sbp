@@ -319,7 +319,7 @@ in parallel and eight Julia threads per case. Its local run manifest is
 
 ## 3D analysis with disk and thread tilts
 
-Open [sbp_3d_analysis.ipynb](sbp_3d_analysis.ipynb). Its **26 rendered plots** include
+Open [sbp_3d_analysis.ipynb](sbp_3d_analysis.ipynb). Its **27 rendered plots** include
 boost curves, raw measurement spectra and dB traces, the actual incident-beam profile,
 frequency-selection diagnostics, complex chord fits and backgrounds, field
 spectra/maps, nominal/fitted geometry, spatial residuals and the full-pull
@@ -339,6 +339,8 @@ an independent spectral curve.
   selected-frequency mask; beam CSV → six-profile input parameters.
 - `src/receive_field.py`, `src/tilted_disks.py`: modal propagation and tilted
   scattering interfaces, using the original BoostFractor matrix-bank format.
+- `src/disk_surfaces.py`, `src/surface_moments.py`: measured face geometry,
+  continuous curved-face clearance bounds and reusable spatial phase integrals.
 - `src/exterior_field.py`: variable-height angular-spectrum continuation for T0.
 - `src/bead_response.py`: the original finite-sphere Mie response.
 - `src/analysis_3d.py`: physical scan chords, fit constraints, variable projection,
@@ -351,10 +353,21 @@ an independent spectral curve.
 
 The independent beam scan contains six Gaussian **magnitude** profiles at scan
 z = 50–100 mm. Their coordinate origin is not registered to the spider mirror.
-The model combines them at the outer reference face, assumes flat phase and
-normalizes their whole-plane power to 1 W. Preliminary Gaussian fits to spider
-chords select the quality frequencies; they do not supply a rotated field to
+The model centres each fitted Gaussian on the common disk axis (x = y = 0),
+retains its measured amplitude and width, combines the profiles at the outer
+reference face, assumes flat phase and normalizes their whole-plane power to
+1 W. Beam alignment stays fixed during the geometry fit. Preliminary Gaussian
+fits to spider chords select the quality frequencies; they do not supply a rotated field to
 the 3D model. The radial reconstruction in the 1D notebook is a separate path.
+
+The six measured disk-face maps are versioned in `config/disk_surfaces/`.
+Booster disks D1–D3 use measured disks 2, 3, 1, in the shared x/y frame.
+The mirror-facing A map contributes axial departure −A and the antenna-facing
+B map contributes +B. Their measured shapes and local thickness variations
+are fixed while the common rigid shifts and slopes are fitted. The interface
+phases, continuous bead-clearance constraints, field masks and geometry plots
+all use those measured faces. `config/disk_surfaces/manifest.json` records
+the source, coordinate convention and hashes of the unchanged measurements.
 
 Local data in `data/3d/` comprise `measurement_inputs.npz`, `beam_prior.npz`,
 `disk_tilts_threads.npz`, `conditional_bands.npz`, `field_maps.npz` and `bank/`.

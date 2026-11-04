@@ -50,12 +50,15 @@ constrains the geometry even when its preliminary profile fit is rejected.
 ---------------------------------------
 
 Interpolate the six independent transmission-beam (:math:`S_{31}`) Gaussian
-magnitude profiles within :math:`\mathcal F`. At each :math:`\nu`:
+magnitude profiles within :math:`\mathcal F`. Centre each fitted Gaussian on
+the common disk axis, :math:`x=y=0`, retaining its measured amplitude and
+width. Combine these centred profiles at the outer reference face. At each
+:math:`\nu`:
 
 .. math::
 
    g(\mathbf r)=\sum_{\ell=1}^{6}A_\ell
-       e^{-|\mathbf r-\mathbf r_\ell|^2/w_\ell^2},\qquad
+       e^{-|\mathbf r|^2/w_\ell^2},\qquad
    N=\sqrt{\int_{\mathbb R^2}|g(\mathbf r)|^2\,\mathrm d^2\mathbf r}.
 
 Set :math:`E_{\mathrm{in}}=\sqrt{2Z_0P_{\mathrm{in}}}\,g/N`, with
@@ -63,10 +66,11 @@ Set :math:`E_{\mathrm{in}}=\sqrt{2Z_0P_{\mathrm{in}}}\,g/N`, with
 Here :math:`Z_0=\sqrt{\mu_0/\epsilon_0}\simeq376.7303\,\Omega` is the
 vacuum wave impedance.
 Assume flat phase at the outer reference face and hold the beam parameters
-fixed during the geometry fit.
+fixed during the geometry fit. This prescribes a centred beam; its alignment
+is not fitted to the bead measurements.
 
-4. Parameterize disks and actual bead paths
--------------------------------------------
+4. Include measured disk shapes and parameterize the geometry
+-------------------------------------------------------------
 
 Use transverse coordinates :math:`x,y` and axial coordinate :math:`z`, with
 :math:`z=0` at the mirror and positive toward the antenna. Index :math:`d`
@@ -74,13 +78,31 @@ labels the three disks, :math:`j` the four threads and :math:`i` a scan point.
 
 .. math::
 
-   z_{d,\mathrm{near}}(x,y)=z_{d0}+\Delta z_d+s_{dx}x+s_{dy}y,\qquad
-   z_{d,\mathrm{far}}=z_{d,\mathrm{near}}+1\,\mathrm{mm},
+   z_{d,\mathrm{near}}(x,y)
+      =z_{d0}+\Delta z_d+s_{dx}x+s_{dy}y+h_{d,\mathrm{near}}(x,y),
 
-Here :math:`z_{d0}` is the nominal near-face position at :math:`x=y=0`,
+.. math::
+
+   z_{d,\mathrm{far}}(x,y)
+      =z_{d0}+\Delta z_d+1\,\mathrm{mm}
+       +s_{dx}x+s_{dy}y+h_{d,\mathrm{far}}(x,y).
+
+Here :math:`z_{d0}` is the nominal near-face reference-plane position,
 :math:`\Delta z_d` its fitted axial shift, and :math:`s_{dx},s_{dy}` the
-dimensionless face slopes along x and y (approximately the tilt angles in
+dimensionless rigid slopes along x and y (approximately the tilt angles in
 radians). Near/far denote the faces closer to/farther from the mirror.
+
+The fixed height functions :math:`h_{d,\mathrm{near}},h_{d,\mathrm{far}}`
+are bilinear interpolations of the measured surfaces in the same x/y frame.
+For D1–D3 counted from the mirror, use measured disks 2, 3, 1 respectively.
+Face A faces the mirror and face B the antenna; with measured heights
+:math:`A_d,B_d`, the signed departures are
+:math:`h_{d,\mathrm{near}}=-A_d` and :math:`h_{d,\mathrm{far}}=B_d`.
+The measurements have 2.5 mm spacing; their heights are converted from
+millimetres to metres. Their offsets and shapes are retained. Thus the local
+thickness is :math:`1\,\mathrm{mm}+A_d(x,y)+B_d(x,y)`.
+Measured shapes stay fixed during the fit and enter the interface propagation
+phases together with the rigid slopes.
 
 .. math::
 
@@ -214,7 +236,9 @@ averaged over the selected frequencies:
 .. math::
 
    r_{\nu}^2=\frac{\sum_j\|c_{\nu}P_jt_{j\nu}-P_j\Gamma_{j\nu}\|^2}
-                    {\sum_j\|P_j\Gamma_{j\nu}\|^2},\qquad
+                    {\sum_j\|P_j\Gamma_{j\nu}\|^2}
+      =\frac{\sum_j\|\widehat\Gamma_{j\nu}-\Gamma_{j\nu}\|^2}
+             {\sum_j\|P_j\Gamma_{j\nu}\|^2},\qquad
    \mathcal L=\frac1{|\mathcal F_{\mathrm{fit}}|}
                      \sum_{\nu\in\mathcal F_{\mathrm{fit}}}r_{\nu}^2.
 
@@ -222,13 +246,17 @@ Frequencies have equal normalized weight; samples within a frequency have
 equal absolute weight. Individual-thread residuals use the same :math:`c_\nu`.
 
 Minimize :math:`\mathcal L` subject to the following bounds and clearance
-constraints. Central gap changes are bounded by ±2 mm, slope components by
-±5 mrad and endpoint shifts by ±2 mm. Continuous-path constraints require at
-least one bead radius of normal clearance from neighboring face planes and
-the mirror. Face-plane checks cover the chord clipped to radius
-:math:`R+r_b`, where :math:`R=150\,\mathrm{mm}` is the disk radius and
-:math:`r_b=1.465\,\mathrm{mm}` the bead radius; they are conservative near
-the finite disk rim.
+constraints. Reference-plane gap changes are bounded by ±2 mm, rigid slope
+components by ±5 mrad and endpoint shifts by ±2 mm. Continuous-path
+constraints require one bead radius of clearance from the measured curved
+faces and the mirror. A bilinear face restricted to a straight chord is
+quadratic within each measurement cell. Bounds on its three quadratic
+Bernstein coefficients and on the surface gradient guarantee clearance
+throughout that cell, including between scan points. Apply these conservative
+constraints to the chord clipped to radius :math:`R+r_b`, where
+:math:`R=150\,\mathrm{mm}` is the disk radius and
+:math:`r_b=1.465\,\mathrm{mm}` the bead radius. The finite rim is conservatively
+extended for this check.
 
 7. Calculate boost and diagnostic fields
 ----------------------------------------
@@ -248,7 +276,7 @@ The corresponding finite-bead field proxy is :math:`\sqrt{|c_{\nu}Q|}`.
 8. Form conditional uncertainty bands
 -------------------------------------
 
-Hold geometry, beam, materials and calibration fixed. Demean the complex
+Hold geometry, measured surface shapes, beam, materials and calibration fixed. Demean the complex
 residuals :math:`e_j=\Gamma_j-\widehat\Gamma_j` per thread/frequency and resample circular
 blocks of eight adjacent chord samples. The same sampled indices are used
 across frequencies. Each draw updates only the common scale:
@@ -262,5 +290,5 @@ across frequencies. Each draw updates only the common scale:
 
 Repeat for 1,000 draws and take pointwise quantiles of
 :math:`\beta^{2(b)}_\nu`; the reported interval is 16–84%.
-These conditional intervals exclude uncertainty in geometry, beam, materials,
+These conditional intervals exclude uncertainty in geometry, measured surface shapes, beam, materials,
 absolute calibration and model discrepancy.

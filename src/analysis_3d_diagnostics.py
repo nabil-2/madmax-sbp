@@ -19,10 +19,11 @@ def _four_panels(title):
     return figure, axes
 
 
-def incident_beam_figure(
+def incident_beam_figures(
     beam,
     *,
     title="Incident beam supplied to the 3D model · {frequency_GHz:.4f} GHz",
+    cuts_title="Incident-beam line cuts · {frequency_GHz:.4f} GHz",
     x_label="x [mm]",
     y_label="y [mm]",
     colorbar_label="$|E_{in}|$ [V/m]",
@@ -31,40 +32,35 @@ def incident_beam_figure(
     x_cut_label="x cut through peak",
     y_cut_label="y cut through peak",
 ):
+    """Return the input-beam map and its line cuts as separate figures."""
     x, y = beam["x_m"] * 1000, beam["y_m"] * 1000
     field = abs(beam["field_V_per_m"])
     i, j = np.unravel_index(np.argmax(field), field.shape)
-    figure, axes = plt.subplots(1, 2, figsize=(11, 4.4), layout="constrained")
-    image = axes[0].pcolormesh(
+    context = dict(frequency_GHz=beam["frequency_hz"][0] / 1e9)
+    figure, axis = plt.subplots(figsize=(5.8, 5.2), layout="constrained")
+    image = axis.pcolormesh(
         x, y, field.T, shading="auto", cmap="viridis", rasterized=True
     )
-    axes[0].add_patch(
-        Circle(
-            (0, 0),
-            beam["disk_radius_m"] * 1000,
-            fill=False,
-            edgecolor="white",
-            ls="--",
-            lw=1,
-        )
-    )
-    axes[0].set(
-        xlabel=render_text(x_label), ylabel=render_text(y_label), aspect="equal"
-    )
-    figure.colorbar(image, ax=axes[0], label=render_text(colorbar_label))
-    axes[1].plot(x - x[i], field[:, j], label=render_text(x_cut_label))
-    axes[1].plot(y - y[j], field[i], label=render_text(y_cut_label))
-    axes[1].set(
-        xlabel=render_text(cut_x_label), ylabel=render_text(cut_y_label), ylim=(0, None)
-    )
-    axes[1].legend()
-    figure.suptitle(render_text(title, frequency_GHz=beam["frequency_hz"][0] / 1e9))
-    return entry(
-        figure,
-        "incident_beam_profile",
-        "Prescribed incident beam",
+    axis.add_patch(Circle((0, 0), beam["disk_radius_m"] * 1000,
+                          fill=False, edgecolor="white", ls="--", lw=1))
+    axis.set(xlabel=render_text(x_label), ylabel=render_text(y_label), aspect="equal",
+             title=render_text(title, **context))
+    figure.colorbar(image, ax=axis, label=render_text(colorbar_label))
+    profile = entry(
+        figure, "incident_beam_profile", "Prescribed incident beam",
         "Actual six-profile beam mixture at the model's outer reference face, normalized to 1 W over the whole plane. Phase is assumed flat; the original scan z origin is not registered to the mirror. The circle marks the 150 mm aperture, not an input-power renormalization.",
     )
+    figure, axis = plt.subplots(figsize=(6.5, 4.2), layout="constrained")
+    axis.plot(x - x[i], field[:, j], label=render_text(x_cut_label))
+    axis.plot(y - y[j], field[i], label=render_text(y_cut_label))
+    axis.set(xlabel=render_text(cut_x_label), ylabel=render_text(cut_y_label),
+             ylim=(0, None), title=render_text(cuts_title, **context))
+    axis.legend()
+    cuts = entry(
+        figure, "incident_beam_cuts", "Incident-beam line cuts",
+        "Horizontal and vertical cuts through the grid maximum of the same prescribed input beam, in absolute V/m units.",
+    )
+    return [profile, cuts]
 
 
 def profile_quality_figure(

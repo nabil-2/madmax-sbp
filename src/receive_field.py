@@ -88,11 +88,15 @@ class ReceiveModel:
         self,
         curvature=0.0,
         width_scale=1.0,
-        center_scale=1.0,
+        center_scale=0.0,
         source="omc",
         center_shift_m=(0.0, 0.0),
     ):
-        """Sample the measured six-profile mixture; never normalize its aperture.
+        """Sample the six-profile mixture, centred on the disk axis by default.
+
+        Set each fitted Gaussian centre to (0, 0), preserving its amplitude
+        and width. A centre scale of one restores the measured offsets for
+        explicit sensitivity studies. Normalize over the whole plane.
 
         Curvature is phase coefficient at 20.825 GHz in BF exp(-ikd) convention;
         it scales with f. It is a sensitivity/nuisance parameter, not measured phase.

@@ -1,6 +1,6 @@
 {
   "origin_repository": "https://github.com/nabil-2/spider-bead-pull-ai",
-  "scope": "Fresh full-tilt geometry fit to measured S22; dense 401-bin reevaluation and conditional bootstrap.",
+  "scope": "Fresh full-tilt geometry fit with a disk-centred incident beam and measured curved disk faces; dense 401-bin reevaluation and conditional bootstrap.",
   "files": {
     "data/3d/measurement_inputs.npz": {
       "bytes": 1395563,
@@ -10,25 +10,25 @@
       "sha256": "9b49017f6a19df812db1d7c2e571939d4d77a7043dc026b466799f786b3f8fb7"
     },
     "data/3d/conditional_bands.npz": {
-      "bytes": 17954,
+      "bytes": 18813,
       "historical_origin_sha256": "ab9f9eae1ba5822ba6bb453451d399ee123cf008ffd2c0e0030c73b754962da6",
       "historical_origin_path": "src-ai/refit_7p803/tilted_threads/results/conditional_bands.npz",
-      "generated_by": "Current madmax-sbp code; outputs/3d_rerun/prepare.py, fit.py and export.py",
-      "sha256": "17ad2c15594ce7054627774259d7faf451e97b81b9cb99700782acce8d3f2b97"
+      "generated_by": "Current madmax-sbp code; outputs/3d_measured_surfaces/fit.py and export.py",
+      "sha256": "4d59a3b7c63039ae65095a522de9737f010b78e9301593eaf6247ea4191c47a5"
     },
     "data/3d/field_maps.npz": {
-      "bytes": 1222808,
+      "bytes": 1926146,
       "historical_origin_sha256": "db6a6722fb9d9108842b3e1333ecd25c33cb685f550d0c752ce23b2908db752a",
       "historical_origin_path": "src-ai/refit_7p803/tilted_threads/results/field_maps.npz",
-      "generated_by": "Current madmax-sbp code; outputs/3d_rerun/prepare.py, fit.py and export.py",
-      "sha256": "b7bf260ec95deb696e874d011fbb2aceebc90f4f2030b63fb8ea487374695970"
+      "generated_by": "Current madmax-sbp code; outputs/3d_measured_surfaces/fit.py and export.py",
+      "sha256": "7edaaa401aa1815f516d9e908f6672088de003ca6a4ff63003c8c9caed5002af"
     },
     "data/3d/disk_tilts_threads.npz": {
-      "bytes": 9550533,
+      "bytes": 9546343,
       "historical_origin_sha256": "a56d5efd386a42c013db92fc580ed20415e964466d5d0678e8032124061ac4d0",
       "historical_origin_path": "src-ai/refit_7p803/tilted_threads/results/full401/disk_tilts_threads.npz",
-      "generated_by": "Current madmax-sbp code; outputs/3d_rerun/prepare.py, fit.py and export.py",
-      "sha256": "33a05b2cac840e3c3ad5c636549fde95552cc8579be68c1b40ec001ed2c501c4"
+      "generated_by": "Current madmax-sbp code; outputs/3d_measured_surfaces/fit.py and export.py",
+      "sha256": "59124041ee72b53933533ad2354ff2db552c01358a6895abfcbcce04ad6583de"
     },
     "data/3d/beam_prior.npz": {
       "sha256": "4e1907cdbefd90b77cbfd5f21567daba05bad3bfa3e0c9954b3c2b1e5d2d6406",
@@ -67,60 +67,56 @@
     "beam_slice_parameters_bit_identical": true
   },
   "fit_details": {
+    "measured_disk_surfaces": true,
+    "disk_surface_sha256": "e3dcbdde83ae2d222d8b8ebae23ffb5feeaa4b428f8ddc1de43ad626baf26db0",
     "geometry_refitted": true,
     "reflection_preprocessing": "none",
+    "incident_beam_alignment": "each_gaussian_centered_on_disk_axis",
     "success": true,
     "message": "Optimization terminated successfully",
     "status": 0,
-    "iterations": 17,
-    "function_evaluations": 31,
-    "gradient_evaluations": 17,
-    "initial_loss": 0.09242973726424956,
-    "final_loss": 0.0923756291140117,
+    "iterations": 57,
+    "function_evaluations": 58,
+    "gradient_evaluations": 57,
+    "initial_loss": 0.12500250525497023,
+    "final_loss": 0.11309550019289326,
     "start_index": 0,
-    "start_name": "previous geometry, all coordinates reoptimized",
-    "node": "max-wn095.desy.de",
-    "elapsed_seconds": 191.11816866183653,
+    "start_name": "previous geometry; all coordinates reoptimized with centred beam and measured disk surfaces",
+    "node": "max-wn047.desy.de",
+    "elapsed_seconds": 718.9558507180773,
     "derivative": "Parallel two-point disk derivatives and cached serial thread derivatives; absolute step 1e-4.",
-    "median_gradient_seconds": 5.499180275015533,
+    "median_gradient_seconds": 9.043016514508054,
+    "independent_start_count": 1,
     "selected_start": "start_0",
-    "export_node": "max-wn095.desy.de",
+    "export_node": "max-wn047.desy.de",
     "fit_frequency_count": 35,
-    "export_frequency_count": 401,
-    "attempted_start_count": 2,
-    "converged_start_count": 1,
-    "nominal_start_check": {
-      "converged": false,
-      "reason": "Stopped optional nominal-start check after the warm-start fit converged and passed dense validation; prioritize turnaround.",
-      "slurm_job": "25608992_1",
-      "iteration": 60,
-      "best_observed_relative_rms": 0.33233674182275047,
-      "parameters_at_stop": [
-        0.011213218972827049,
-        0.5282351073358245,
-        -0.05732901922724149,
-        -0.5279344556208098,
-        -2.6751476805345433,
-        -0.7650021179005067,
-        5.0,
-        -2.613178779074542,
-        4.25613085406039,
-        -1.1147070741891347,
-        -1.8163124095207441,
-        -1.3355079797365212,
-        -1.733706963403756,
-        1.9999999999999998,
-        1.8652955116685228,
-        2.0,
-        -1.416961756397793
-      ],
-      "stopped_utc": "2026-11-04T11:39:00.647438+00:00"
-    }
+    "export_frequency_count": 401
   },
   "bank_full401": {
     "local_path": "data/3d/bank_full401",
     "frequency_count": 401,
     "manifest_sha256": "0c61743c7e39e672b9071f9468c47fd0715e504559b2c1de24d10aaa4c16f726",
     "scope": "Reused unchanged propagation operators; geometry is solved anew."
+  },
+  "incident_beam_alignment": "each_gaussian_centered_on_disk_axis",
+  "beam_alignment": {
+    "per_profile_center_m": [
+      0.0,
+      0.0
+    ],
+    "amplitudes_and_widths": "Measured, unchanged",
+    "phase": "Flat",
+    "incident_power_W": 1.0
+  },
+  "disk_surfaces": {
+    "local_directory": "config/disk_surfaces",
+    "fingerprint": "e3dcbdde83ae2d222d8b8ebae23ffb5feeaa4b428f8ddc1de43ad626baf26db0",
+    "booster_order": [
+      2,
+      3,
+      1
+    ],
+    "height_departures": "near=-A, far=+B",
+    "coordinate_registration": "Confirmed by user"
   }
 }

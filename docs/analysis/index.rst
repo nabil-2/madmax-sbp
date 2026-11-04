@@ -38,7 +38,9 @@ Coordinates and defaults
 ------------------------
 
 The analysis coordinate :math:`z=0` is the mirror; positive z points towards the
-antenna. Positions below are **central near faces**, not disk centres.
+antenna. Positions below are nominal **near-face reference positions**, not
+disk centres. The 3D analysis adds the measured surface departures to these
+reference planes.
 
 .. list-table:: Corrected nominal geometry
    :header-rows: 1

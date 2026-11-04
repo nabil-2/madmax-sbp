@@ -11,6 +11,7 @@ from matplotlib.lines import Line2D
 from matplotlib.ticker import MaxNLocator
 from .receive_field import NOM_DISKS_MM
 from .analysis_3d import NOM_Z_MM
+from .disk_surfaces import DiskSurfaces
 from .plot_text import render_text, display_figure
 
 TITLE = "Disk tilts + sloped threads"
@@ -312,12 +313,12 @@ def geometry_figures(
     endpoint_shifts_title="Changes from corrected nominal; search ranges",
     projection_title_template="{coordinate}–z projection",
     disk_shifts_title="Shifts from corrected nominal",
-    disk_slopes_title="Disk surface slopes",
+    disk_slopes_title="Rigid disk slopes",
     view_title="Fitted disk surfaces and all four straight paths",
     z_label="Distance from mirror z [mm]",
     transverse_label_template="{coordinate} [mm]",
     endpoint_shift_y_label="Endpoint Δz [mm]",
-    disk_shift_y_label="Central near-face Δz [mm]",
+    disk_shift_y_label="Reference near-face Δz [mm]",
     disk_slope_y_label="Disk slope [mrad]",
     x_label="x [mm]",
     y_label="y [mm]",
@@ -344,6 +345,11 @@ def geometry_figures(
     xy = np.asarray(record["thread_endpoint_xy_m"]) * 1000
     slopes = np.asarray(record["disk_slopes_mrad"])
     faces = np.asarray(record["disk_nearface_z_mm"])
+    surfaces = DiskSurfaces() if record.get("measured_disk_surfaces", False) else None
+    centre_offsets = np.zeros((3, 2)) if surfaces is None else np.array([
+        [surfaces.evaluate(d, side, [[0, 0]])[0] * 1000 for side in range(2)]
+        for d in range(3)
+    ])
     fig, axs = plt.subplots(
         2,
         1,
@@ -354,15 +360,15 @@ def geometry_figures(
     ax = axs[0]
     for j, z in enumerate(NOMINAL_DISKS):
         ax.axvspan(
-            z,
-            z + 1,
+            z + centre_offsets[j, 0],
+            z + 1 + centre_offsets[j, 1],
             color=GREY,
             alpha=0.2,
             label=nominal_disk_band_label if j == 0 else None,
         )
         ax.axvspan(
-            faces[j],
-            faces[j] + 1,
+            faces[j] + centre_offsets[j, 0],
+            faces[j] + 1 + centre_offsets[j, 1],
             color=COLOR,
             alpha=0.23,
             label=fitted_disk_band_label if j == 0 else None,
@@ -501,7 +507,7 @@ def geometry_figures(
         fig,
         "endpoint_geometry",
         "Thread endpoint heights",
-        "The upper panel shows endpoint z coordinates along a common mirror-distance axis; row spacing is only for readability. Disk bands show central near-face positions and 1 mm thickness, not their tilted extent. "
+        "The upper panel shows endpoint z coordinates along a common mirror-distance axis; row spacing is only for readability. Disk bands show the actual two face positions on the disk axis, including measured shape offsets. "
         "A and B are the minimum and maximum retained signed scan-coordinate locations, not measured mechanical supports. They remain at their recorded x/y positions. "
         "Each straight path interpolates between its own endpoint pair. The lower panel shows shifts from the corrected nominal and the search ranges in those coordinates. "
         + SCOPE_DESCRIPTION,
@@ -524,34 +530,29 @@ def geometry_figures(
             gridspec_kw={"height_ratios": [1.4, 1]},
         )
         projection_axes = axs[0]
-    cross = np.array([-RADIUS_MM, RADIUS_MM])
+    cross = np.linspace(-RADIUS_MM, RADIUS_MM, 121)
     for col, name in enumerate(("x", "y")):
         ax = projection_axes[col]
         for j in range(3):
+            xy_cut = np.zeros((len(cross), 2))
+            xy_cut[:, col] = cross / 1000
+            offset = np.zeros((2, len(cross))) if surfaces is None else np.array([
+                surfaces.evaluate(j, side, xy_cut) * 1000 for side in range(2)
+            ])
             if split_geometry:
                 nominal = NOMINAL_DISKS[j]
-                nominal_pts = np.array(
-                    [
-                        [nominal, cross[0]],
-                        [nominal, cross[1]],
-                        [nominal + 1, cross[1]],
-                        [nominal + 1, cross[0]],
-                    ]
-                )
+                nominal_pts = np.column_stack((
+                    np.r_[nominal + offset[0], (nominal + 1 + offset[1])[::-1]],
+                    np.r_[cross, cross[::-1]],
+                ))
                 ax.add_patch(
                     Polygon(
                         nominal_pts, fc="#E4E8EB", ec=GREY, lw=1.1, ls="--", zorder=1
                     )
                 )
-            near = faces[j] + slopes[j, col] * cross / 1000
-            pts = np.array(
-                [
-                    [near[0], -150],
-                    [near[1], 150],
-                    [near[1] + 1, 150],
-                    [near[0] + 1, -150],
-                ]
-            )
+            near = faces[j] + slopes[j, col] * cross / 1000 + offset[0]
+            far = faces[j] + 1 + slopes[j, col] * cross / 1000 + offset[1]
+            pts = np.column_stack((np.r_[near, far[::-1]], np.r_[cross, cross[::-1]]))
             ax.add_patch(Polygon(pts, fc=COLOR, ec=COLOR, alpha=0.35))
             if split_geometry:
                 ax.text(
@@ -627,9 +628,9 @@ def geometry_figures(
             fig,
             "disk_surfaces_and_paths",
             "Nominal and fitted disk surfaces and thread paths",
-            "Grey dashed outlines show the corrected nominal disks, perpendicular to z; coloured dashed lines show nominal thread heights at the recorded x/y endpoints. "
+            "Grey dashed outlines show measured disk shapes at the nominal reference positions with zero fitted rigid tilt; coloured dashed lines show nominal thread heights at the recorded x/y endpoints. "
             "Filled disks and solid paths show the fitted geometry. Disk cross-sections are taken at the other transverse coordinate equal to zero; thread paths are orthogonal projections. "
-            "A projected crossing does not establish physical overlap. The axial and transverse scales differ; disk thickness is 1 mm.",
+            "A projected crossing does not establish physical overlap. The axial and transverse scales differ. The two measured faces set local thickness around the 1 mm reference-plane separation.",
         )
         fig, adjustment_axes = plt.subplots(
             1, 2, figsize=(7.4, 3.2), layout="constrained"
@@ -638,7 +639,18 @@ def geometry_figures(
         axs[0, 0].legend(ncol=2, fontsize=8, loc="upper left")
         adjustment_axes = axs[1]
     x = np.arange(3)
+    # Match EndpointFitProblem.bounds; saved run settings take precedence.
+    disk_bounds = np.asarray(record.get("disk_shift_bounds_mm", [(-2, 2), (-4, 4), (-6, 6)]), float)
+    tilt_bound = float(record.get("fit_details", {}).get("disk_tilt_bound_mrad", 5.0))
+    adjustment_axes[0].vlines(x, disk_bounds[:, 0], disk_bounds[:, 1],
+                              color=GREY, lw=0.8, ls=":", label=search_range_label)
+    for edge in disk_bounds.T:
+        adjustment_axes[0].hlines(edge, x-0.28, x+0.28, color=GREY, lw=0.8, ls=":")
     adjustment_axes[0].bar(x, disk_shifts_mm(faces), color=COLOR, width=0.55)
+    adjustment_axes[0].set_ylim(min(disk_bounds[:, 0].min(), disk_shifts_mm(faces).min())-0.7,
+                                max(disk_bounds[:, 1].max(), disk_shifts_mm(faces).max())+0.7)
+    adjustment_axes[0].legend(fontsize=7.8, loc="upper center",
+                              bbox_to_anchor=(0.5, -0.16), frameon=False)
     adjustment_axes[0].set(
         xticks=x,
         xticklabels=[render_text(disk_label_template, disk_index=j) for j in (1, 2, 3)],
@@ -649,6 +661,13 @@ def geometry_figures(
         (0, -0.17, slope_x_label, COLOR),
         (1, 0.17, slope_y_label, "#DDAA33"),
     ):
+        adjustment_axes[1].vlines(x+offset, -tilt_bound, tilt_bound,
+                                  color=GREY, lw=0.8, ls=":",
+                                  label=search_range_label if col == 0 else None)
+        adjustment_axes[1].hlines([-tilt_bound]*3, x+offset-0.13, x+offset+0.13,
+                                  color=GREY, lw=0.8, ls=":")
+        adjustment_axes[1].hlines([tilt_bound]*3, x+offset-0.13, x+offset+0.13,
+                                  color=GREY, lw=0.8, ls=":")
         adjustment_axes[1].bar(
             x + offset, slopes[:, col], width=0.32, color=color, label=label
         )
@@ -658,7 +677,10 @@ def geometry_figures(
         ylabel=disk_slope_y_label,
         title=disk_slopes_title,
     )
-    adjustment_axes[1].legend(fontsize=8)
+    adjustment_axes[1].set_ylim(min(-tilt_bound, slopes.min())-0.7,
+                                max(tilt_bound, slopes.max())+0.7)
+    adjustment_axes[1].legend(fontsize=7.8, loc="upper center",
+                              bbox_to_anchor=(0.5, -0.16), ncol=3, frameon=False)
     for ax in adjustment_axes:
         ax.axhline(0, color=GREY, lw=0.6)
         ax.grid(axis="y", alpha=0.15)
@@ -667,7 +689,7 @@ def geometry_figures(
             fig,
             "disk_shifts_and_slopes",
             "Fitted disk shifts and surface slopes",
-            "Left: fitted central near-face z minus the corrected nominal position. Right: fitted dz/dx and dz/dy in mrad. Both disk faces share the same slope and have 1 mm vertical separation.",
+            "Left: fitted near-face reference-plane shift from the corrected nominal position. Right: fitted rigid dz/dx and dz/dy in mrad. Dotted capped lines show coordinate search bounds, not uncertainties; gap and bead-clearance constraints further restrict their combinations. Both faces share this fitted rigid tilt, with their separate measured shapes added.",
         )
     else:
         second = entry(
@@ -676,7 +698,7 @@ def geometry_figures(
             "Disk surfaces and projected sloped paths",
             "Each top panel shows the fitted disk cross-section at the other transverse coordinate equal to zero, together with the orthogonal projection of every actual sloped chord. "
             "Projected line–disk intersections do not establish physical overlap: the chord can have a nonzero other transverse coordinate. Both axial and transverse scales are deliberately different. "
-            "The saved constraint uses normal distance to infinite face planes along the path clipped to the expanded disk footprint; this conservative plane margin is distinct from distance to the physical finite disk surface or edge. Disk faces are parallel with 1 mm vertical separation.",
+            "The saved clearance is a conservative bound to measured curved faces plus fitted rigid tilts along the continuous chord, extended at the finite rim. The nominal reference-plane separation is 1 mm; the two measured faces set local thickness.",
         )
     fig = plt.figure(figsize=(6.5, 5.6), layout="constrained")
     ax = fig.add_subplot(111, projection="3d")
@@ -688,9 +710,12 @@ def geometry_figures(
     )
     for j in range(3):
         zz = faces[j] + (slopes[j, 0] * xx + slopes[j, 1] * yy) / 1000
-        ax.plot_surface(xx, yy, zz, color=COLOR, alpha=0.22, linewidth=0, shade=False)
-        ax.plot(xx[-1], yy[-1], zz[-1], color=COLOR, lw=0.8)
-        ax.plot(xx[-1], yy[-1], zz[-1] + 1, color=COLOR, lw=0.6, alpha=0.65)
+        xy_surface = np.stack((xx / 1000, yy / 1000), axis=-1)
+        near = zz if surfaces is None else zz + 1000 * surfaces.evaluate(j, 0, xy_surface)
+        far = zz + 1 if surfaces is None else zz + 1 + 1000 * surfaces.evaluate(j, 1, xy_surface)
+        ax.plot_surface(xx, yy, near, color=COLOR, alpha=0.22, linewidth=0, shade=False)
+        ax.plot(xx[-1], yy[-1], near[-1], color=COLOR, lw=0.8)
+        ax.plot(xx[-1], yy[-1], far[-1], color=COLOR, lw=0.6, alpha=0.65)
     for t in range(4):
         ax.plot(
             xy[t, :, 0],
@@ -727,7 +752,7 @@ def geometry_figures(
         "geometry_3d",
         "Oblique view of the fitted disk surfaces and paths",
         "Axial distances are strongly exaggerated relative to transverse distances so the fitted slopes and endpoint heights can be seen. "
-        "Translucent surfaces show near faces; paired rim curves indicate the 1 mm vertical disk thickness. The grey plane is the mirror. "
+        "Translucent surfaces show measured near faces plus fitted rigid tilts; paired rim curves show the measured far faces. The grey plane is the mirror. "
         "Coloured straight segments connect the actual retained x/y endpoints at their fitted z coordinates. These recorded segment endpoints are not measured support anchors.",
     )
     return (
@@ -1109,13 +1134,20 @@ def reference_field_figure(
                 fontsize=8.5,
             )
     extent = sections["disk_radius_m"] * np.linalg.norm(sections["disk_slopes"], axis=1)
+    bounds = sections.get("disk_face_z_bounds_m")
+    disk_intervals = (
+        [(min(face[:, 0]), max(face[:, 1])) for face in bounds]
+        if bounds is not None else
+        [(near - half_range, near + 0.001 + half_range)
+         for near, half_range in zip(sections["disk_nearface_z_m"], extent)]
+    )
     for axis in axes:
         for low, high in reference["disk_edges_m"]:
             axis.axvspan(low * 1000, high * 1000, color="0.5", alpha=0.13, zorder=0)
-        for near, half_range in zip(sections["disk_nearface_z_m"], extent):
+        for low, high in disk_intervals:
             axis.axvspan(
-                (near - half_range) * 1000,
-                (near + 0.001 + half_range) * 1000,
+                low * 1000,
+                high * 1000,
                 facecolor=COLOR,
                 alpha=0.06,
                 edgecolor=COLOR,
@@ -1134,5 +1166,5 @@ def reference_field_figure(
         fig,
         "fields_full_reference_" + f"{frequency_GHz:.3f}".replace(".", "p"),
         "Full-reference and spider field integrals",
-        "Top: full-scan measured integrals, its saved finite-bead model, the 3D finite-bead integral, and the same rotational line reconstructions as the 1D workflow for T0–T3. These spider estimates are diagnostics, not 3D fit inputs, and are placed at the fitted thread midpoints. Bottom: model field integrals without the bead. The 3D curves integrate horizontal 150 mm-radius sections; missing sections intersect tilted disks or lack full bead clearance. Grey bands mark full-reference disks; pale magenta bands cover the tilted spider disks. Geometry and fitted scale are unchanged.",
+        "Top: full-scan measured integrals, its saved finite-bead model, the 3D finite-bead integral, and the same rotational line reconstructions as the 1D workflow for T0–T3. These spider estimates are diagnostics, not 3D fit inputs, and are placed at the fitted thread midpoints. Bottom: model field integrals without the bead. The 3D curves integrate horizontal 150 mm-radius sections; missing sections intersect curved/tilted disks or lack full bead clearance. Grey bands mark full-reference disks; pale magenta bands cover the measured curved and tilted spider disks. Geometry and fitted scale are unchanged.",
     )

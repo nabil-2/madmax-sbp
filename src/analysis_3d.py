@@ -111,16 +111,29 @@ class EndpointFitProblem:
         rows = []
         lower = []
         meta = []
-        # Conservative normal clearance factor makes these inequalities linear.
-        # A straight line against a plane has affine clearance, so the two
-        # clipped segment endpoints guarantee the entire continuous scan path.
-        rb = (1.465 + self.clearance_margin_mm) * np.sqrt(
-            1 + 2 * (self.tilt_bound * 0.001) ** 2
-        )
+        # A bilinear map restricted to a straight chord is quadratic in each
+        # map cell. Its three Bernstein coefficients bound the entire segment.
+        # The fitted path and rigid tilt remain affine, so all constraints are
+        # linear in the 17 geometry parameters, including between samples.
+        surfaces = self.model.surfaces
+        factors = surfaces.normal_factors(np.full((3, 2), self.tilt_bound * 0.001))
+        required = []
         above = {1: 2, 2: 1, 3: 0}
         below = {0: 2, 1: 1, 2: 0}
         for t, line in enumerate(self.lines):
-            for fraction in clipped_segment(line["endpoint_xy"], 0.15 + 0.001465):
+            bounds = clipped_segment(line["endpoint_xy"], 0.15 + 0.001465)
+            segments = surfaces.chord_segments(line["endpoint_xy"], bounds)
+            fractions = segments.ravel()
+            fixed = {}
+            if t in above:
+                fixed[(above[t], 0)] = surfaces.chord_bernstein_heights(
+                    above[t], 0, line["endpoint_xy"], segments
+                ).ravel() * 1000
+            if t in below:
+                fixed[(below[t], 1)] = surfaces.chord_bernstein_heights(
+                    below[t], 1, line["endpoint_xy"], segments
+                ).ravel() * 1000
+            for index, fraction in enumerate(fractions):
                 weight = np.array([1 - fraction, fraction])
                 x, y = weight @ line["endpoint_xy"]
                 for sign, j in [(1, above[t])] if t in above else []:
@@ -129,7 +142,9 @@ class EndpointFitProblem:
                     r[3 + 2 * j : 5 + 2 * j] = sign * np.array([x, y])
                     r[9 + 2 * t : 11 + 2 * t] = -sign * weight
                     rows.append(r)
-                    lower.append(rb - (NOM_DISKS_MM[j] - NOM_Z_MM[t]))
+                    rb = (1.465 + self.clearance_margin_mm) * factors[j, 0]
+                    required.append(rb)
+                    lower.append(rb - (NOM_DISKS_MM[j] - NOM_Z_MM[t]) - fixed[(j, 0)][index])
                     meta.append((t, j, "above", fraction))
                 for sign, j in [(-1, below[t])] if t in below else []:
                     r = np.zeros(17)
@@ -137,12 +152,14 @@ class EndpointFitProblem:
                     r[3 + 2 * j : 5 + 2 * j] = sign * np.array([x, y])
                     r[9 + 2 * t : 11 + 2 * t] = -sign * weight
                     rows.append(r)
-                    lower.append(rb - (NOM_Z_MM[t] - NOM_DISKS_MM[j] - 1))
+                    rb = (1.465 + self.clearance_margin_mm) * factors[j, 1]
+                    required.append(rb)
+                    lower.append(rb - (NOM_Z_MM[t] - NOM_DISKS_MM[j] - 1) + fixed[(j, 1)][index])
                     meta.append((t, j, "below", fraction))
         self.clear_A = np.asarray(rows)
         self.clear_lower = np.asarray(lower)
         self.clear_meta = meta
-        self.clear_rb = rb
+        self.clear_rb = np.asarray(required)
         self.gap_A = np.zeros((3, 17))
         self.gap_A[:, :3] = [[1, 0, 0], [-1, 1, 0], [0, -1, 1]]
         # Interior projected propagation and exterior FFT continuation are only
@@ -213,9 +230,9 @@ class EndpointFitProblem:
     def clearance(self, q):
         vertical = self.clear_A @ q - self.clear_lower + self.clear_rb
         slopes = q[3:9].reshape(3, 2) * 0.001
-        norms = np.array(
-            [np.sqrt(1 + sum(slopes[j] ** 2)) for t, j, side, a in self.clear_meta]
-        )
+        factors = self.model.surfaces.normal_factors(slopes)
+        norms = np.array([factors[j, 0 if side == "above" else 1]
+                          for t, j, side, a in self.clear_meta])
         return float(min(np.min(vertical / norms), np.min(NOM_Z_MM[3] + q[15:17])))
 
     def _disk_solution(self, q):
@@ -406,6 +423,10 @@ def summarize(p, q, details):
         held_out_threads=[t for t in range(4) if t not in p.fit_threads],
         geometry_frequency_count=int(sum(p.eligible)),
         disk_nearface_z_mm=(NOM_DISKS_MM + q[:3]).tolist(),
+        disk_reference_nearface_z_mm=(NOM_DISKS_MM + q[:3]).tolist(),
+        disk_measured_surface_order=[2, 3, 1],
+        disk_surface_sha256=p.model.surfaces.fingerprint,
+        measured_disk_surfaces=True,
         disk_shifts_mm=q[:3].tolist(),
         disk_slopes_mrad=slopes.tolist(),
         disk_tilt_magnitude_mrad=(
@@ -436,7 +457,8 @@ def summarize(p, q, details):
         minimum_continuous_bead_center_to_surface_distance_mm=p.clearance(q),
         minimum_continuous_bead_surface_clearance_mm=p.clearance(q) - 1.465,
         minimum_conservative_plane_clearance_margin_mm=p.clearance(q) - 1.465,
-        clearance_definition="Conservative normal distance to infinite neighboring face planes over the continuous chord clipped at radius R+bead_radius, minus bead radius. This is a lower-bound safety margin, not the true Euclidean gap to a finite disk edge. The mirror distance is exact.",
+        clearance_definition="Conservative distance lower bound to measured bilinear disk faces plus fitted rigid tilts, over the full continuous chord clipped at R+bead_radius. Per-cell quadratic Bernstein bounds and face-gradient bounds guarantee bead clearance between samples. The finite rim is conservatively extended; mirror distance is exact.",
+        disk_position_definition="disk_nearface_z_mm gives reference-plane positions; actual near/far faces add the signed measured departures -A/+B and the fitted rigid slopes to reference planes separated by 1 mm.",
         required_bead_surface_clearance_margin_mm=p.clearance_margin_mm,
         surface_RMS_displacement_mm=float(
             np.sqrt(np.mean(q[:3] ** 2 + 0.15**2 / 4 * np.sum(slopes**2, axis=1)))
@@ -444,7 +466,8 @@ def summarize(p, q, details):
         fit_details=details,
         local=local,
         interface_projection_scheme="scattering",
-        fixed_beam="Measured OMC six-profile mixture, nominal center, width, zero phase curvature; whole-plane incident-power normalization.",
+        fixed_beam="Measured OMC six-profile mixture; each fitted Gaussian centred on the disk axis (x=y=0), measured amplitudes and widths, flat phase; whole-plane incident power 1 W.",
+        incident_beam_alignment="each_gaussian_centered_on_disk_axis",
         uncertainty_scope="Conditional complex-residual bootstrap with geometry and beam fixed; excludes geometry, beam, calibration and model uncertainty.",
         interior_propagation="Exact contraction and evaluation of the original cubic matrix-bank spline at each bead z.",
         exterior_propagation="Angular spectrum of the full prescribed incident beam and outgoing modal field; positive heights, incident evanescent components removed.",
@@ -454,6 +477,9 @@ def summarize(p, q, details):
     arr = dict(
         frequency_hz=p.f,
         reflection_preprocessing="none",
+        incident_beam_alignment="each_gaussian_centered_on_disk_axis",
+        measured_disk_surfaces=True,
+        disk_surface_sha256=p.model.surfaces.fingerprint,
         geometry_refitted=bool(details.get("geometry_refitted", False)),
         eligible=p.eligible,
         parameters=q,

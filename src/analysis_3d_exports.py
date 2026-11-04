@@ -165,6 +165,9 @@ def midpoint_maps(p, q, folder, frequencies_hz=(20.795e9, 20.825e9, 21e9)):
     integrated = np.zeros((len(indices), 3), complex)
     valid = np.ones((len(indices), 3), bool)
     xx, yy = m.X, m.Y
+    faces = m.surfaces.face_positions(disks, slopes, m.x, m.y)
+    face_bounds = m.surfaces.aperture_bounds(disks, slopes, m.radius)
+    factors = m.surfaces.normal_factors(slopes)
     aperture = xx**2 + yy**2 <= m.radius**2
     rb = 0.001465
     for j, k in enumerate(indices):
@@ -187,9 +190,7 @@ def midpoint_maps(p, q, folder, frequencies_hz=(20.795e9, 20.825e9, 21e9)):
                 )
                 outgoing = np.fft.ifft2(np.fft.fft2(outgoing) * np.exp(-1j * kz * d))
                 waves = m.scale * np.stack([incoming, outgoing], axis=-1)
-                clearance = (
-                    z - disks[2] - 0.001 - slopes[2, 0] * xx - slopes[2, 1] * yy
-                ) / np.sqrt(1 + sum(slopes[2] ** 2))
+                clearance = (z - faces[2, 1]) / factors[2, 1]
                 ok = (xx**2 + yy**2 > (m.radius + rb) ** 2) | (clearance >= rb)
             else:
                 high = 3 - t
@@ -204,23 +205,16 @@ def midpoint_maps(p, q, folder, frequencies_hz=(20.795e9, 20.825e9, 21e9)):
                 waves = (m.scale * (m.B @ np.stack([cin, cout], axis=-1))).reshape(
                     (*shape, 2), order="F"
                 )
-                right = (
-                    disks[high] + slopes[high, 0] * xx + slopes[high, 1] * yy - z
-                ) / np.sqrt(1 + sum(slopes[high] ** 2))
+                right = (faces[high, 0] - z) / factors[high, 0]
                 left = (
                     np.full(shape, z)
                     if low < 0
-                    else (
-                        z
-                        - disks[low]
-                        - 0.001
-                        - slopes[low, 0] * xx
-                        - slopes[low, 1] * yy
-                    )
-                    / np.sqrt(1 + sum(slopes[low] ** 2))
+                    else (z - faces[low, 1]) / factors[low, 1]
                 )
                 ok = aperture & (right >= rb) & (left >= rb)
-                if np.any(aperture & ((right <= 0) | (left <= 0))):
+                if z >= face_bounds[high, 0, 0] or (
+                    z <= (face_bounds[low, 1, 1] if low >= 0 else 0.0)
+                ):
                     valid[j, t - 1] = False
             em = waves[..., 0].conj()
             ep = waves[..., 1].conj()
@@ -257,6 +251,10 @@ def midpoint_maps(p, q, folder, frequencies_hz=(20.795e9, 20.825e9, 21e9)):
         thread_endpoint_xy_m=np.array([l["endpoint_xy"] for l in p.lines]),
         disk_slopes=slopes,
         disk_nearface_z_m=disks,
+        measured_disk_surfaces=True,
+        disk_surface_sha256=m.surfaces.fingerprint,
+        disk_face_z_m=faces,
+        disk_face_z_bounds_m=face_bounds,
         thread0_signed_line_m=p.lines[0]["u"],
         thread0_xy_m=p.lines[0]["xy"],
         thread0_observed_S22=p.lines[0]["y"][indices],
@@ -265,7 +263,7 @@ def midpoint_maps(p, q, folder, frequencies_hz=(20.795e9, 20.825e9, 21e9)):
     )
     meta = {
         "scope": "Illustrative horizontal sections at each straight thread midpoint z. Sloped-thread likelihood/chord profiles use point-specific z, not these sections.",
-        "support": "Interior disk aperture and full bead clearance from actual tilted face planes; exterior points in expanded disk footprint require bead clearance. This is conservative at finite disk rims.",
+        "support": "Interior disk aperture and full bead clearance from the measured curved faces plus fitted rigid tilts, using face-gradient bounds; exterior points in the expanded footprint require bead clearance. Conservative at finite disk rims.",
         "coherent_integral": "Unperturbed complex transverse integral at the illustrative horizontal section; valid only when the entire disk aperture lies in air. It is not a measurement integral along a sloped path.",
         "reference_thread_z_mm_T0_T1_T2_T3": NOM_Z_MM.tolist(),
         "actual_thread_midpoint_z_mm": (midpoint * 1000).tolist(),
@@ -283,7 +281,7 @@ def longitudinal_field_integrals(
     This is a field export, not a fit. Both complex transverse integrals use the
     same 150 mm circular aperture. The finite-bead root uses the receive model's
     existing branch nearest its field without the bead. Sections intersecting a
-    tilted disk are omitted; the bead response also requires full bead clearance.
+    curved/tilted disk are omitted; the bead response requires full bead clearance.
     """
     from scipy.interpolate import BSpline
     from .tilted_disks import TiltedReceiveModel
@@ -316,9 +314,10 @@ def longitudinal_field_integrals(
     bead_integrals = integrals.copy()
     valid = np.zeros(len(z), bool)
     bead_valid = valid.copy()
-    extent = model.radius * np.linalg.norm(slopes, axis=1)
-    bead_clearance = 0.001465 * np.sqrt(1 + np.sum(slopes**2, axis=1))
     aperture = model.aperture.reshape((len(model.x), len(model.y)), order="F")
+    faces = model.surfaces.face_positions(disks, slopes, model.x, model.y)
+    bounds = model.surfaces.aperture_bounds(disks, slopes, model.radius)
+    bead_clearance = 0.001465 * model.surfaces.normal_factors(slopes)
     basis = model.Binside
     coefficients = model.Pspline.c[..., k]
     incident = solution["input_field"][k].reshape(aperture.shape, order="F")
@@ -335,14 +334,14 @@ def longitudinal_field_integrals(
     outgoing_fft = np.fft.fft2(reflected)
 
     for gap in range(4):
-        low = 0.0 if gap == 0 else disks[gap - 1] + 0.001 + extent[gap - 1]
-        high = disks[gap] - extent[gap] if gap < 3 else np.inf
+        low = 0.0 if gap == 0 else bounds[gap - 1, 1, 1]
+        high = bounds[gap, 0, 0] if gap < 3 else np.inf
         select = np.flatnonzero((z >= low) & (z <= high))
         if not len(select):
             continue
         zz = z[select]
-        bead_low = 0.001465 if gap == 0 else low + bead_clearance[gap - 1]
-        bead_high = high - bead_clearance[gap] if gap < 3 else np.inf
+        bead_low = 0.001465 if gap == 0 else low + bead_clearance[gap - 1, 1]
+        bead_high = high - bead_clearance[gap, 0] if gap < 3 else np.inf
         valid[select] = True
         bead_valid[select] = (zz >= bead_low) & (zz <= bead_high)
         if gap < 3:
@@ -397,6 +396,9 @@ def longitudinal_field_integrals(
         full_aperture_in_air=valid[None],
         full_bead_clearance=bead_valid[None],
         disk_nearface_z_m=disks,
+        measured_disk_surfaces=True,
+        disk_surface_sha256=model.surfaces.fingerprint,
+        disk_face_z_bounds_m=bounds,
         disk_slopes=slopes,
         thread_midpoint_z_mm=midpoint * 1000,
         disk_radius_m=model.radius,
