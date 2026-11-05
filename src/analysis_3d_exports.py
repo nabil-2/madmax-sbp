@@ -253,6 +253,8 @@ def midpoint_maps(p, q, folder, frequencies_hz=(20.795e9, 20.825e9, 21e9)):
                     if valid[j, t - 1]
                     else complex(np.nan, np.nan)
                 )
+    delta_gamma_magnitude = abs(p.kappa[indices])[:, None, None, None] * proxy**2
+    delta_gamma_magnitude[~electric_field_support] = np.nan
     proxy[~support] = np.nan
     unperturbed[~electric_field_support] = np.nan
     t0 = (
@@ -267,6 +269,7 @@ def midpoint_maps(p, q, folder, frequencies_hz=(20.795e9, 20.825e9, 21e9)):
         thread_z_mm=midpoint * 1000,
         thread_midpoint_z_mm=midpoint * 1000,
         field_proxy_V_per_m=proxy,
+        delta_gamma_magnitude=delta_gamma_magnitude,
         unperturbed_magnitude_V_per_m=unperturbed,
         support=support,
         electric_field_support=electric_field_support,
@@ -291,6 +294,7 @@ def midpoint_maps(p, q, folder, frequencies_hz=(20.795e9, 20.825e9, 21e9)):
         "scope": "Illustrative horizontal sections at each straight thread midpoint z. Sloped-thread likelihood/chord profiles use point-specific z, not these sections.",
         "support": "All four threads use the disk aperture and full bead clearance from measured curved faces plus rigid tilts, with conservative face-gradient bounds. Outside-aperture measured points remain in the fit with zero bead-induced signal and the fixed endpoint-derived background.",
         "electric_field_support": "Unperturbed electric fields use the disk aperture and pointwise air region between the measured curved faces. They do not require clearance for a finite bead.",
+        "delta_gamma_magnitude": "Illustrative magnitude of the bead-response formula throughout the pointwise air aperture. Where full bead clearance fails, this is a formal continuation, not a realizable bead-response prediction. The physical support mask and fit clearance constraints remain separate.",
         "aperture_treatment": APERTURE_TREATMENT,
         "coherent_integral": "Unperturbed complex transverse integral at the illustrative horizontal section; valid only when the entire disk aperture lies in air. It is not a measurement integral along a sloped path.",
         "reference_thread_z_mm_T0_T1_T2_T3": NOM_Z_MM.tolist(),

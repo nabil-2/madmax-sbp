@@ -8,7 +8,6 @@ import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib.patches import Circle, Polygon, Patch
 from matplotlib.lines import Line2D
-from matplotlib.colors import ListedColormap
 from matplotlib.ticker import MaxNLocator
 from .receive_field import NOM_DISKS_MM
 from .analysis_3d import NOM_Z_MM, APERTURE_TREATMENT
@@ -804,13 +803,19 @@ def delta_gamma_maps(maps):
     The saved finite-bead effective field is sqrt(abs(c * Q)). Thus the
     fitted response abs(c * conj(kappa * Q)) equals abs(kappa) times its square.
     This uses the directional-wave bead response, not simply abs(E)**2.
+    Illustrative full-air maps formally continue this formula where physical
+    bead clearance is insufficient; their physical support remains separate.
     """
+    if "delta_gamma_magnitude" in maps:
+        return maps["delta_gamma_magnitude"]
     factor = abs(kappa(maps["frequency_hz"]))[:, None, None, None]
     return factor * maps["field_proxy_V_per_m"] ** 2
 
 
 def _field_map_support(maps, observable):
-    if observable == "electric_field" and CASE == "disk_tilts_threads":
+    if (observable == "electric_field" and CASE == "disk_tilts_threads") or (
+        observable == "delta_gamma" and "delta_gamma_magnitude" in maps
+    ):
         return maps.get("electric_field_support", maps["support"])
     return maps["support"]
 
@@ -893,7 +898,6 @@ def field_map_figures(
         fig, axs = plt.subplots(
             2, 2, figsize=(6.5, 6.4), layout="constrained", sharex=True, sharey=True
         )
-        has_clearance_exclusion = False
         for t, ax in enumerate(axs.flat):
             plane = np.where(support[k, t], field[k, t], np.nan)
             display = ax.pcolormesh(
@@ -906,16 +910,6 @@ def field_map_figures(
                 vmax=vmax,
                 rasterized=True,
             )
-            if reflection and "electric_field_support" in maps:
-                excluded = maps["electric_field_support"][k, t] & ~support[k, t]
-                if np.any(excluded):
-                    has_clearance_exclusion = True
-                    ax.pcolormesh(
-                        x, y,
-                        np.ma.array(np.zeros_like(plane), mask=~excluded).T,
-                        shading="auto", cmap=ListedColormap(["#d9d9d9"]),
-                        vmin=0, vmax=1, rasterized=True,
-                    )
             xy = a["xy_m"][a["thread_index"] == t] * 1000
             ax.plot(xy[:, 0], xy[:, 1], color="#333333", lw=2.1, ls=":")
             ax.plot(xy[:, 0], xy[:, 1], color="white", lw=1.1, ls=":")
@@ -946,11 +940,6 @@ def field_map_figures(
             render_text(title_template, case_title=TITLE, frequency_GHz=f),
             fontsize=10.5,
         )
-        if has_clearance_exclusion:
-            fig.legend(
-                handles=[Patch(facecolor="#d9d9d9", label="Insufficient bead clearance")],
-                loc="outside lower center", frameon=False, fontsize=8,
-            )
         if reflection:
             figure = entry(
                 fig,
@@ -958,11 +947,11 @@ def field_map_figures(
                 f"Predicted reflection-change magnitude · {f:.3f} GHz",
                 "Colours show the dimensionless magnitude of the predicted bead-induced complex reflection change. "
                 "The finite-bead directional-wave response and common complex response scale are the same as in the 3D fit at this geometry; fixed endpoint-derived backgrounds are excluded. "
-                "All four horizontal thread-midpoint sections share one colour scale, path overlays and disk-radius circles. Grey pixels lie in air but lack clearance for the finite bead; no bead response is displayed there.",
+                "All four horizontal thread-midpoint sections share one colour scale, path overlays and disk-radius circles. The formula is displayed throughout the air aperture; within one bead radius of a disk it is a formal continuation rather than a realizable bead-response prediction. Physical bead-clearance constraints in the fit are unchanged.",
             )
             figure.update(
-                source_array="field_proxy_V_per_m",
-                quantity="abs(kappa) * field_proxy_V_per_m**2",
+                source_array=("delta_gamma_magnitude" if "delta_gamma_magnitude" in maps else "field_proxy_V_per_m"),
+                quantity="abs(kappa) * abs(c * Q)",
                 units="dimensionless",
                 colour_limits=[0.0, float(vmax)],
                 finite_bead_response_applied=True,

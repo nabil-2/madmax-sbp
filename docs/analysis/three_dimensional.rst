@@ -200,6 +200,8 @@ circular aperture for T0–T3.
 The electric field is defined at every point in air. The finite-bead response
 additionally requires enough clearance for the entire bead to remain in air;
 this restriction does not apply to the electric field without the bead.
+Evaluating the bead-response formula outside this clearance domain gives only
+a formal continuation, not a realizable bead response.
 
 6. Fit the geometry, backgrounds and common complex scale
 ---------------------------------------------------------

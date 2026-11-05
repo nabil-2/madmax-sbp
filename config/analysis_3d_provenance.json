@@ -17,11 +17,11 @@
       "sha256": "fb4629c5de3b89ac893f66d2b3fd75d6fb1534bee09ee6fda92439c4940bf034"
     },
     "data/3d/field_maps.npz": {
-      "bytes": 1317940,
+      "bytes": 1618817,
       "historical_origin_sha256": "db6a6722fb9d9108842b3e1333ecd25c33cb685f550d0c752ce23b2908db752a",
       "historical_origin_path": "src-ai/refit_7p803/tilted_threads/results/field_maps.npz",
-      "generated_by": "src.analysis_3d_exports.midpoint_maps with separate pointwise-air and finite-bead support masks",
-      "sha256": "46d344a2fbfc75393ef6c12563380416d83eb2e132d865558a78eef7f2e8f242"
+      "generated_by": "src.analysis_3d_exports.midpoint_maps; full-air illustrative response with separate physical bead support",
+      "sha256": "e5c1bb4ab3366d1ba6c20c418519ba2bee5ba65a3b99a6b272a57b50c24b43a7"
     },
     "data/3d/disk_tilts_threads.npz": {
       "bytes": 9080544,
@@ -37,9 +37,9 @@
       "generated_by": "Current code; outputs/3d_fixed_endpoints/prepare.py, fit.py and export.py"
     },
     "data/3d/nominal_geometry/field_maps.npz": {
-      "sha256": "4d0703350f962fb7f39c0bb0ce50b5cf3fae20b4ba520f9b895702f7e6b11140",
-      "bytes": 1209931,
-      "generated_by": "src.analysis_3d_exports.midpoint_maps with separate pointwise-air and finite-bead support masks"
+      "sha256": "344589e1d20756c032bfe8864add4696f685255bdc259ef34a2eba01548f1b70",
+      "bytes": 1511481,
+      "generated_by": "src.analysis_3d_exports.midpoint_maps; full-air illustrative response with separate physical bead support"
     },
     "data/3d/nominal_geometry/disk_tilts_threads.npz": {
       "sha256": "553fe3f783501c207a3ef3610a352e2625a874c00edbc0e5ec51e99bd23a3b48",
@@ -52,9 +52,9 @@
       "generated_by": "Current code; outputs/3d_fixed_endpoints/export.py"
     },
     "data/3d/nominal_geometry/field_maps.json": {
-      "sha256": "f8e2d4d1172d7df241fbd9f60b92df4db0f4c4b85b76df45fb6120abc6db03a2",
-      "bytes": 1184,
-      "generated_by": "src.analysis_3d_exports.midpoint_maps with separate pointwise-air and finite-bead support masks"
+      "sha256": "ae330ec7b1f1a42bd751b460e74b0bd420325d2c36c37c6957cb6082e82437ed",
+      "bytes": 1485,
+      "generated_by": "src.analysis_3d_exports.midpoint_maps; full-air illustrative response with separate physical bead support"
     }
   },
   "bank": {
