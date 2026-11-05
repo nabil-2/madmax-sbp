@@ -5,7 +5,6 @@ Reconstruct the existing fitted profiles; no measurement or fit is modified.
 
 import numpy as np
 import matplotlib.pyplot as plt
-from matplotlib.colors import ListedColormap
 from matplotlib.lines import Line2D
 from matplotlib.patches import Patch
 
@@ -123,8 +122,8 @@ def _example_handles():
 
 
 def gaussian_fit_examples(
-    profiles, metrics=None, *, thread=2,
-    accepted_frequency_GHz=20.825, rejected_frequency_GHz=20.900,
+    profiles, metrics=None, *, thread=3,
+    accepted_frequency_GHz=20.825, rejected_frequency_GHz=21.010,
     title="Gaussian frequency-selection diagnostic: accepted and rejected examples",
 ):
     metrics = selection_diagnostics(profiles) if metrics is None else metrics
@@ -137,10 +136,15 @@ def gaussian_fit_examples(
     figure.suptitle(title, y=.98, fontsize=13)
     figure.legend(handles=_example_handles(), ncol=2, loc="upper center",
                   bbox_to_anchor=(.5, .92), frameon=False, fontsize=9)
+    excluded = np.count_nonzero(
+        (profiles["thread_index"] == thread) & profiles["transient_trace_mask"]
+    )
+    measurement_note = (f"All T{thread} measurements are shown." if excluded == 0
+                        else f"{excluded} flagged T{thread} measurements are excluded.")
     figure.text(.5, .075,
         "Raw measured values and the saved complex Gaussian-profile model, including its offset and slope.\n"
         r"$q=\mathrm{RMS}(\Gamma-\widehat\Gamma)/|A|$; the acceptance threshold is 0.20. "
-        "Known transition samples are omitted.", ha="center", va="center", fontsize=9)
+        + measurement_note, ha="center", va="center", fontsize=9)
     return entry(
         figure, "gaussian_accepted_rejected", "Accepted and rejected Gaussian-profile fits",
         "The same thread is shown at an accepted and a rejected frequency. Real and imaginary raw reflection samples are plotted without baseline subtraction or shape normalization. Curves reconstruct the saved preliminary Gaussian model, including its own affine nuisance terms. The quality metric uses complex residuals. These diagnostic nuisance terms do not determine the physical endpoint background used by the 3D fit.",
@@ -148,8 +152,8 @@ def gaussian_fit_examples(
 
 
 def frequency_selection_overview(
-    profiles, metrics=None, *, thread=2,
-    accepted_frequency_GHz=20.825, rejected_frequency_GHz=20.900,
+    profiles, metrics=None, *, thread=3,
+    accepted_frequency_GHz=20.825, rejected_frequency_GHz=21.010,
     title="Selecting frequencies for the 3D geometry fit",
 ):
     metrics = selection_diagnostics(profiles) if metrics is None else metrics
@@ -159,41 +163,27 @@ def frequency_selection_overview(
     )
     f = np.asarray(profiles["frequency_hz"])/1e9
     figure = plt.figure(figsize=(14, 7.4))
-    grid = figure.add_gridspec(2, 2, width_ratios=(2.5, 1.2), height_ratios=(2.1, 1),
+    grid = figure.add_gridspec(1, 2, width_ratios=(2.5, 1.2),
                                left=.07, right=.98, bottom=.17, top=.86,
-                               wspace=.28, hspace=.12)
+                               wspace=.28)
     quality_axis = figure.add_subplot(grid[0, 0])
-    mask_axis = figure.add_subplot(grid[1, 0], sharex=quality_axis)
-    example_grid = grid[:, 1].subgridspec(2, 1, hspace=.58)
+    example_grid = grid[0, 1].subgridspec(2, 1, hspace=.58)
     for j, color in zip((1, 2, 3), THREAD_COLORS):
         quality_axis.plot(f, metrics["q"][:, j], color=color, lw=1.15, label=f"T{j}")
-        hit = metrics["at_bound"][:, j]
-        quality_axis.plot(f[hit], metrics["q"][hit, j], "x", color=color,
-                          ms=3, alpha=.65, mew=.65)
         other = metrics["other_failure"][:, j]
         quality_axis.plot(f[other], metrics["q"][other, j], "v", color=color,
                           ms=4, fillstyle="none")
     quality_axis.axhline(THRESHOLD, color="#333333", ls="--", lw=1.4,
                          label="Acceptance threshold: 0.20")
     quality_axis.set(yscale="log", ylabel=r"Gaussian fit quality $q=\mathrm{RMS}/|A|$",
-                     xlim=(f[0], f[-1]))
-    quality_axis.tick_params(labelbottom=False)
+                     xlabel="Frequency [GHz]", xlim=(f[0], f[-1]))
     quality_axis.grid(alpha=.16, which="both")
     quality_axis.legend(fontsize=8.5, ncol=2, loc="upper left")
     for frequency in f[metrics["selected"]]:
         quality_axis.axvspan(frequency-.0025, frequency+.0025,
                              color=ACCEPTED_COLOR, alpha=.055, lw=0, zorder=0)
-    quality = np.column_stack((metrics["accepted"][:, 1:], metrics["selected"]))
-    edges = np.r_[f[0]-(f[1]-f[0])/2, (f[:-1]+f[1:])/2, f[-1]+(f[-1]-f[-2])/2]
-    mask_axis.pcolormesh(edges, np.arange(5), quality.T,
-                         cmap=ListedColormap(["#E6EAED", ACCEPTED_COLOR]),
-                         vmin=0, vmax=1, shading="flat", rasterized=True)
-    mask_axis.set(yticks=np.arange(4)+.5, yticklabels=["T1", "T2", "T3", "Used: all three"],
-                  xlabel="Frequency [GHz]", ylim=(4, 0), xlim=(f[0], f[-1]))
-    mask_axis.axhline(3, color="#30363B", lw=1.1)
-    for axis in (quality_axis, mask_axis):
-        for sample, color in zip(samples, (ACCEPTED_COLOR, REJECTED_COLOR)):
-            axis.axvline(sample["frequency_GHz"], color=color, ls=":", lw=1.2)
+    for sample, color in zip(samples, (ACCEPTED_COLOR, REJECTED_COLOR)):
+        quality_axis.axvline(sample["frequency_GHz"], color=color, ls=":", lw=1.2)
     for i, sample in enumerate(samples):
         axis = figure.add_subplot(example_grid[i, 0])
         _draw_example(axis, sample, compact=True)
@@ -206,15 +196,13 @@ def frequency_selection_overview(
         "all T1–T3 profiles must converge, stay away from parameter bounds and satisfy q < 0.20",
         fontsize=10.5)
     figure.legend(handles=[
-        Patch(facecolor=ACCEPTED_COLOR, label="Accepted"),
-        Patch(facecolor="#E6EAED", label="Rejected"),
-        Line2D([], [], marker="x", color="#555555", ls="none", label="Parameter bound"),
+        Patch(facecolor=ACCEPTED_COLOR, alpha=.2, label="Selected frequency bins"),
         Line2D([], [], marker="v", fillstyle="none", color="#555555", ls="none", label="Additional fit check failed"),
-    ], ncol=4, loc="lower left", bbox_to_anchor=(.065, .065), frameon=False, fontsize=9)
+    ], ncol=2, loc="lower left", bbox_to_anchor=(.065, .065), frameon=False, fontsize=9)
     figure.text(.07, .035,
         "T0 does not determine frequency acceptance. All four threads, T0–T3, enter the geometry fit at the selected frequencies.",
         fontsize=9.5)
     return entry(
         figure, "geometry_frequency_selection", "Geometry-fit frequency selection",
-        "The curves reconstruct the normalized complex residuals of the saved Gaussian profile fits. Crosses identify parameter-bound hits; triangles identify additional failures below threshold and away from bounds. The stored acceptance mask also includes convergence checks. A bin enters the geometry fit only if T1, T2 and T3 all pass. T0 still enters the physical geometry objective. The example panels show raw real/imaginary reflection and the saved complex Gaussian models.",
+        "The curves reconstruct the normalized complex residuals of the saved Gaussian profile fits. Triangles identify additional failures below threshold and away from bounds. The stored acceptance mask also includes convergence and parameter-bound checks. A bin enters the geometry fit only if T1, T2 and T3 all pass. T0 still enters the physical geometry objective. The example panels show raw real/imaginary reflection and the saved complex Gaussian models.",
     )
