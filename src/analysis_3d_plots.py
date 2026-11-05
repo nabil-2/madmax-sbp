@@ -1049,7 +1049,7 @@ def residual_figures(
     x_label="Frequency [GHz]",
     combined_y_label=r"Scale factor $s_\nu$ [%]",
     individual_y_label="Individual residual [%]",
-    objective_label_template="Fitted objective · {scope}",
+    objective_label_template="fitted scale factor, T0-T3",
     fit_bins_label_template="{fit_bin_count} quality-selected bins",
     control_label="New fixed-thread tilts · same all-four objective",
     thread_label_template="T{thread_index}{held_out}",
@@ -1072,9 +1072,12 @@ def residual_figures(
     combined_ax.plot(
         f[use],
         100 * a["relative_residual"][use],
-        ".",
-        color=COLOR,
-        ms=4,
+        "o",
+        color="#E69F00",
+        ms=5,
+        markeredgecolor="white",
+        markeredgewidth=0.6,
+        zorder=3,
         label=render_text(fit_bins_label_template, fit_bin_count=int(use.sum())),
     )
     if control is not None:
