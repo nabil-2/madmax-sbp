@@ -198,33 +198,92 @@ the background estimate.
 The horizontal electric-field and predicted-reflection maps show this same
 circular aperture for T0–T3.
 
-6. Fit the geometry and common complex scale
----------------------------------------------
+6. Fit the geometry, backgrounds and common complex scale
+---------------------------------------------------------
 
-At a fixed trial geometry and frequency, let :math:`t_{j\nu}` be the predicted
-bead-induced reflection from Step 5. Use the fixed background-subtracted data
-:math:`\Delta\Gamma_{j\nu}` from Step 2. Fit one complex response scale shared
-by T0–T3:
-
-.. math::
-
-   c_\nu=\frac{\sum_j t_{j\nu}^{\dagger}\Delta\Gamma_{j\nu}}
-                  {\sum_j\|t_{j\nu}\|^2},\qquad
-   \widehat\Gamma_{j\nu}=\Gamma_{\mathrm{bg},j\nu}+c_\nu t_{j\nu}.
-
-Here :math:`\dagger` denotes conjugate transpose. The background is already
-fixed; it is never adjusted to improve agreement with a trial geometry.
-All retained samples enter the normalized residual:
+At a fixed trial geometry and frequency :math:`\nu`, collect each thread's
+:math:`n_j` measured values and simulated bead responses from Step 5 into
+vectors :math:`\Gamma_{j\nu},t_{j\nu}\in\mathbb C^{n_j}`. The same scalar
+positions :math:`u_{ji}` as in Step 2 form the vector :math:`\mathbf u_j`
+and the :math:`n_j\times2` background matrix
 
 .. math::
 
-   r_\nu^2=\frac{\sum_j\|c_\nu t_{j\nu}-\Delta\Gamma_{j\nu}\|^2}
-                    {\sum_j\|\Delta\Gamma_{j\nu}\|^2},\qquad
+   X_j=[\mathbf1,\mathbf u_j]
+      =\begin{pmatrix}
+         1 & u_{j1}\\
+         \vdots & \vdots\\
+         1 & u_{jn_j}
+       \end{pmatrix},\qquad
+   b_{j\nu}=\begin{pmatrix}b_{0,j\nu}\\b_{1,j\nu}\end{pmatrix}.
+
+Thus :math:`X_jb_{j\nu}` is a constant plus a linear trend along the thread.
+Fit this background using only the first and last five valid points on each
+thread, as in Step 2, and hold it fixed. Fit one common complex scale
+:math:`c_\nu` by minimizing
+
+.. math::
+
+   S_\nu(c_\nu)
+      =\sum_j\|\Gamma_{j\nu}-c_\nu t_{j\nu}-X_jb_{j\nu}\|^2.
+
+All sums over j include **T0–T3**. Let :math:`E_j\in\mathbb R^{10\times n_j}`
+select the first five and last five valid samples. Linear least squares on
+these ten off-beam measurements gives
+
+.. math::
+
+   b_{j\nu}=(E_jX_j)^+E_j\Gamma_{j\nu},\qquad
+   P_j=I-X_j(E_jX_j)^+E_j,
+
+where + denotes the pseudoinverse and :math:`I` the :math:`n_j\times n_j`
+identity matrix. The operator :math:`P_j` subtracts the affine background
+estimated exclusively from the endpoints. It does not fit the background to
+the illuminated samples or to the model residual. For these scans, the
+reference points lie outside the disk signal aperture, so
+:math:`E_jt_{j\nu}=0` and :math:`P_jt_{j\nu}=t_{j\nu}`. This leaves the
+reduced objective
+
+.. math::
+
+   S_\nu(c_\nu)=\sum_j\|P_j\Gamma_{j\nu}-c_\nu P_jt_{j\nu}\|^2.
+
+Minimizing with respect to the complex scale gives the normal equation and
+its solution:
+
+.. math::
+
+   \sum_j(P_jt_{j\nu})^\dagger
+      (P_j\Gamma_{j\nu}-c_\nu P_jt_{j\nu})=0,
+
+.. math::
+
+   c_\nu=\frac{\sum_j(P_jt_{j\nu})^\dagger(P_j\Gamma_{j\nu})}
+                  {\sum_j\|P_jt_{j\nu}\|^2}.
+
+Here :math:`\dagger` denotes the conjugate transpose. Combining this scale
+with the fixed endpoint background gives the fitted response and the
+baseline-subtracted signal:
+
+.. math::
+
+   \widehat\Gamma_{j\nu}=c_\nu t_{j\nu}+X_jb_{j\nu},\qquad
+   \Delta\Gamma_{j\nu}=\Gamma_{j\nu}-X_jb_{j\nu},\qquad
+   \widehat{\Delta\Gamma}_{j\nu}=c_\nu t_{j\nu}.
+
+For every trial geometry, recalculate the scale with this analytical solution
+while keeping the endpoint backgrounds fixed. Choose the geometry by
+minimizing the normalized residual averaged over the selected frequencies:
+
+.. math::
+
+   r_{\nu}^2=\frac{\sum_j\|c_{\nu}P_jt_{j\nu}-P_j\Gamma_{j\nu}\|^2}
+                    {\sum_j\|P_j\Gamma_{j\nu}\|^2},\qquad
    \mathcal L=\frac1{|\mathcal F_{\mathrm{fit}}|}
-                     \sum_{\nu\in\mathcal F_{\mathrm{fit}}}r_\nu^2.
+                     \sum_{\nu\in\mathcal F_{\mathrm{fit}}}r_{\nu}^2.
 
-Frequencies have equal normalized weight; samples within a frequency have equal
-absolute weight. Individual-thread residuals use the same :math:`c_\nu`.
+Frequencies have equal normalized weight; samples within a frequency have
+equal absolute weight. Individual-thread residuals use the same :math:`c_\nu`.
 
 Minimize :math:`\mathcal L` subject to the following bounds and clearance
 constraints. Reference-plane gap changes are bounded by ±2 mm, rigid slope
