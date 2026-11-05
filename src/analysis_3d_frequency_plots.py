@@ -162,17 +162,10 @@ def frequency_selection_overview(
         _example(profiles, metrics, thread, rejected_frequency_GHz, False),
     )
     f = np.asarray(profiles["frequency_hz"])/1e9
-    figure = plt.figure(figsize=(14, 7.4))
-    grid = figure.add_gridspec(1, 2, width_ratios=(2.5, 1.2),
-                               left=.07, right=.98, bottom=.17, top=.86,
-                               wspace=.28)
-    quality_axis = figure.add_subplot(grid[0, 0])
-    example_grid = grid[0, 1].subgridspec(2, 1, hspace=.58)
+    figure, quality_axis = plt.subplots(figsize=(10.5, 6.4))
+    figure.subplots_adjust(left=.09, right=.98, bottom=.21, top=.80)
     for j, color in zip((1, 2, 3), THREAD_COLORS):
         quality_axis.plot(f, metrics["q"][:, j], color=color, lw=1.15, label=f"T{j}")
-        other = metrics["other_failure"][:, j]
-        quality_axis.plot(f[other], metrics["q"][other, j], "v", color=color,
-                          ms=4, fillstyle="none")
     quality_axis.axhline(THRESHOLD, color="#333333", ls="--", lw=1.4,
                          label="Acceptance threshold: 0.20")
     quality_axis.set(yscale="log", ylabel=r"Gaussian fit quality $q=\mathrm{RMS}/|A|$",
@@ -184,25 +177,19 @@ def frequency_selection_overview(
                              color=ACCEPTED_COLOR, alpha=.055, lw=0, zorder=0)
     for sample, color in zip(samples, (ACCEPTED_COLOR, REJECTED_COLOR)):
         quality_axis.axvline(sample["frequency_GHz"], color=color, ls=":", lw=1.2)
-    for i, sample in enumerate(samples):
-        axis = figure.add_subplot(example_grid[i, 0])
-        _draw_example(axis, sample, compact=True)
-        if i == 0:
-            figure.legend(handles=_example_handles(), fontsize=6.5, ncol=2,
-                           loc="upper right", bbox_to_anchor=(.98, .945), frameon=False)
     figure.suptitle(title, y=.975, fontsize=15)
-    figure.text(.07, .915,
-        f"{int(metrics['selected'].sum())} of {len(f)} measured bins selected · "
+    figure.text(.09, .875,
+        f"{int(metrics['selected'].sum())} of {len(f)} measured bins selected\n"
         "all T1–T3 profiles must converge, stay away from parameter bounds and satisfy q < 0.20",
         fontsize=10.5)
     figure.legend(handles=[
         Patch(facecolor=ACCEPTED_COLOR, alpha=.2, label="Selected frequency bins"),
-        Line2D([], [], marker="v", fillstyle="none", color="#555555", ls="none", label="Additional fit check failed"),
-    ], ncol=2, loc="lower left", bbox_to_anchor=(.065, .065), frameon=False, fontsize=9)
-    figure.text(.07, .035,
-        "T0 does not determine frequency acceptance. All four threads, T0–T3, enter the geometry fit at the selected frequencies.",
+    ], loc="lower left", bbox_to_anchor=(.08, .065), frameon=False, fontsize=9)
+    figure.text(.09, .035,
+        "T0 does not determine frequency acceptance. All four threads, T0–T3, enter the geometry fit\n"
+        "at the selected frequencies.",
         fontsize=9.5)
     return entry(
         figure, "geometry_frequency_selection", "Geometry-fit frequency selection",
-        "The curves reconstruct the normalized complex residuals of the saved Gaussian profile fits. Triangles identify additional failures below threshold and away from bounds. The stored acceptance mask also includes convergence and parameter-bound checks. A bin enters the geometry fit only if T1, T2 and T3 all pass. T0 still enters the physical geometry objective. The example panels show raw real/imaginary reflection and the saved complex Gaussian models.",
+        "The curves reconstruct the normalized complex residuals of the saved Gaussian profile fits. The stored acceptance mask also includes convergence and parameter-bound checks. A bin enters the geometry fit only if T1, T2 and T3 all pass. T0 still enters the physical geometry objective. Accepted/rejected raw-reflection examples appear in the separate figure below.",
     )
