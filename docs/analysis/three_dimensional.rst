@@ -197,6 +197,9 @@ the least-squares objective. Only the ten designated endpoint samples enter
 the background estimate.
 The horizontal electric-field and predicted-reflection maps show this same
 circular aperture for T0–T3.
+The electric field is defined at every point in air. The finite-bead response
+additionally requires enough clearance for the entire bead to remain in air;
+this restriction does not apply to the electric field without the bead.
 
 6. Fit the geometry, backgrounds and common complex scale
 ---------------------------------------------------------

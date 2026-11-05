@@ -17,11 +17,11 @@
       "sha256": "fb4629c5de3b89ac893f66d2b3fd75d6fb1534bee09ee6fda92439c4940bf034"
     },
     "data/3d/field_maps.npz": {
-      "bytes": 1314909,
+      "bytes": 1317940,
       "historical_origin_sha256": "db6a6722fb9d9108842b3e1333ecd25c33cb685f550d0c752ce23b2908db752a",
       "historical_origin_path": "src-ai/refit_7p803/tilted_threads/results/field_maps.npz",
-      "generated_by": "Current code; outputs/3d_fixed_endpoints/prepare.py, fit.py and export.py",
-      "sha256": "ffbff682fa4ae3ccb497ed8d3e63c553121f8a027982a3d306e904695340d7f8"
+      "generated_by": "src.analysis_3d_exports.midpoint_maps with separate pointwise-air and finite-bead support masks",
+      "sha256": "46d344a2fbfc75393ef6c12563380416d83eb2e132d865558a78eef7f2e8f242"
     },
     "data/3d/disk_tilts_threads.npz": {
       "bytes": 9080544,
@@ -37,9 +37,9 @@
       "generated_by": "Current code; outputs/3d_fixed_endpoints/prepare.py, fit.py and export.py"
     },
     "data/3d/nominal_geometry/field_maps.npz": {
-      "sha256": "b51f7ed6b64c95fd014c6125e3c69aa3807bd45d8b392604af684a3143ef321e",
-      "bytes": 1207699,
-      "generated_by": "Current code; outputs/3d_fixed_endpoints/export.py"
+      "sha256": "4d0703350f962fb7f39c0bb0ce50b5cf3fae20b4ba520f9b895702f7e6b11140",
+      "bytes": 1209931,
+      "generated_by": "src.analysis_3d_exports.midpoint_maps with separate pointwise-air and finite-bead support masks"
     },
     "data/3d/nominal_geometry/disk_tilts_threads.npz": {
       "sha256": "553fe3f783501c207a3ef3610a352e2625a874c00edbc0e5ec51e99bd23a3b48",
@@ -52,9 +52,9 @@
       "generated_by": "Current code; outputs/3d_fixed_endpoints/export.py"
     },
     "data/3d/nominal_geometry/field_maps.json": {
-      "sha256": "50b7990412a42331504f201a857d5282590c701f51cf358eb58fe81fa3ff0cc1",
-      "bytes": 994,
-      "generated_by": "Current code; outputs/3d_fixed_endpoints/export.py"
+      "sha256": "f8e2d4d1172d7df241fbd9f60b92df4db0f4c4b85b76df45fb6120abc6db03a2",
+      "bytes": 1184,
+      "generated_by": "src.analysis_3d_exports.midpoint_maps with separate pointwise-air and finite-bead support masks"
     }
   },
   "bank": {

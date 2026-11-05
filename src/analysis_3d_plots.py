@@ -8,6 +8,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib.patches import Circle, Polygon, Patch
 from matplotlib.lines import Line2D
+from matplotlib.colors import ListedColormap
 from matplotlib.ticker import MaxNLocator
 from .receive_field import NOM_DISKS_MM
 from .analysis_3d import NOM_Z_MM, APERTURE_TREATMENT
@@ -808,6 +809,12 @@ def delta_gamma_maps(maps):
     return factor * maps["field_proxy_V_per_m"] ** 2
 
 
+def _field_map_support(maps, observable):
+    if observable == "electric_field" and CASE == "disk_tilts_threads":
+        return maps.get("electric_field_support", maps["support"])
+    return maps["support"]
+
+
 def field_map_vmax(maps, *, observable="electric_field", frequencies_GHz=None):
     """Largest displayed value across selected frequencies and four threads."""
     if observable not in ("electric_field", "delta_gamma"):
@@ -819,8 +826,9 @@ def field_map_vmax(maps, *, observable="electric_field", frequencies_GHz=None):
     field = delta_gamma_maps(maps) if observable == "delta_gamma" else maps[field_key]
     window = (abs(maps["x_m"][:, None]) <= 0.205) & (abs(maps["y_m"][None, :]) <= 0.205)
     frequencies = FREQUENCIES if frequencies_GHz is None else tuple(frequencies_GHz)
+    support = _field_map_support(maps, observable)
     return max(
-        float(np.nanmax(np.where(maps["support"][at_frequency(maps, f)],
+        float(np.nanmax(np.where(support[at_frequency(maps, f)],
                                  field[at_frequency(maps, f)], np.nan)[:, window]))
         for f in frequencies
     )
@@ -873,7 +881,8 @@ def field_map_figures(
         if unperturbed and not reflection else "field_proxy_V_per_m"
     )
     field = delta_gamma_maps(maps) if reflection else maps[field_key]
-    if field.shape != maps["support"].shape or field.shape[1] != 4:
+    support = _field_map_support(maps, observable)
+    if field.shape != support.shape or field.shape[1] != 4:
         raise ValueError("Maps must contain all four thread midpoint planes")
     vmax = field_map_vmax(maps, observable=observable, frequencies_GHz=frequencies) if vmax is None else float(vmax)
     if not np.isfinite(vmax) or vmax <= 0:
@@ -884,8 +893,9 @@ def field_map_figures(
         fig, axs = plt.subplots(
             2, 2, figsize=(6.5, 6.4), layout="constrained", sharex=True, sharey=True
         )
+        has_clearance_exclusion = False
         for t, ax in enumerate(axs.flat):
-            plane = np.where(maps["support"][k, t], field[k, t], np.nan)
+            plane = np.where(support[k, t], field[k, t], np.nan)
             display = ax.pcolormesh(
                 x,
                 y,
@@ -896,6 +906,16 @@ def field_map_figures(
                 vmax=vmax,
                 rasterized=True,
             )
+            if reflection and "electric_field_support" in maps:
+                excluded = maps["electric_field_support"][k, t] & ~support[k, t]
+                if np.any(excluded):
+                    has_clearance_exclusion = True
+                    ax.pcolormesh(
+                        x, y,
+                        np.ma.array(np.zeros_like(plane), mask=~excluded).T,
+                        shading="auto", cmap=ListedColormap(["#d9d9d9"]),
+                        vmin=0, vmax=1, rasterized=True,
+                    )
             xy = a["xy_m"][a["thread_index"] == t] * 1000
             ax.plot(xy[:, 0], xy[:, 1], color="#333333", lw=2.1, ls=":")
             ax.plot(xy[:, 0], xy[:, 1], color="white", lw=1.1, ls=":")
@@ -926,6 +946,11 @@ def field_map_figures(
             render_text(title_template, case_title=TITLE, frequency_GHz=f),
             fontsize=10.5,
         )
+        if has_clearance_exclusion:
+            fig.legend(
+                handles=[Patch(facecolor="#d9d9d9", label="Insufficient bead clearance")],
+                loc="outside lower center", frameon=False, fontsize=8,
+            )
         if reflection:
             figure = entry(
                 fig,
@@ -933,7 +958,7 @@ def field_map_figures(
                 f"Predicted reflection-change magnitude · {f:.3f} GHz",
                 "Colours show the dimensionless magnitude of the predicted bead-induced complex reflection change. "
                 "The finite-bead directional-wave response and common complex response scale are the same as in the 3D fit at this geometry; fixed endpoint-derived backgrounds are excluded. "
-                "All four horizontal thread-midpoint sections share one colour scale and retain the field plot's aperture/clearance mask, path overlays and disk-radius circles.",
+                "All four horizontal thread-midpoint sections share one colour scale, path overlays and disk-radius circles. Grey pixels lie in air but lack clearance for the finite bead; no bead response is displayed there.",
             )
             figure.update(
                 source_array="field_proxy_V_per_m",
@@ -951,7 +976,7 @@ def field_map_figures(
                 + SCOPE_DESCRIPTION
                 + " "
                 "The black/white dotted overlay marks one projected x/y path; a sloped thread generally leaves this plane. "
-                "The existing aperture and conservative clearance display mask is retained; blank regions do not mean zero field. "
+                "Fields are displayed throughout the air inside the circular aperture. Finite-bead clearance does not restrict the unperturbed electric field. "
                 "Dashed circles mark the 150 mm disk radius. All four threads and displayed frequencies share one colour scale."
             )
             figure = entry(

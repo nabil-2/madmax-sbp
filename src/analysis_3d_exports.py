@@ -182,6 +182,7 @@ def midpoint_maps(p, q, folder, frequencies_hz=(20.795e9, 20.825e9, 21e9)):
     proxy = np.zeros((len(indices), 4, *shape))
     unperturbed = proxy.copy()
     support = np.zeros_like(proxy, bool)
+    electric_field_support = np.zeros_like(proxy, bool)
     integrated = np.zeros((len(indices), 3), complex)
     valid = np.ones((len(indices), 3), bool)
     xx, yy = m.X, m.Y
@@ -211,6 +212,7 @@ def midpoint_maps(p, q, folder, frequencies_hz=(20.795e9, 20.825e9, 21e9)):
                 outgoing = np.fft.ifft2(np.fft.fft2(outgoing) * np.exp(-1j * kz * d))
                 waves = m.scale * np.stack([incoming, outgoing], axis=-1)
                 clearance = (z - faces[2, 1]) / factors[2, 1]
+                field_ok = aperture & (clearance > 0)
                 ok = aperture & (clearance >= rb)
             else:
                 high = 3 - t
@@ -232,6 +234,7 @@ def midpoint_maps(p, q, folder, frequencies_hz=(20.795e9, 20.825e9, 21e9)):
                     else (z - faces[low, 1]) / factors[low, 1]
                 )
                 ok = aperture & (right >= rb) & (left >= rb)
+                field_ok = aperture & (right > 0) & (left > 0)
                 if z >= face_bounds[high, 0, 0] or (
                     z <= (face_bounds[low, 1, 1] if low >= 0 else 0.0)
                 ):
@@ -243,6 +246,7 @@ def midpoint_maps(p, q, folder, frequencies_hz=(20.795e9, 20.825e9, 21e9)):
             proxy[j, t] = scale * np.sqrt(abs(quadratic))
             unperturbed[j, t] = scale * abs(em + ep)
             support[j, t] = ok
+            electric_field_support[j, t] = field_ok
             if t > 0:
                 integrated[j, t - 1] = (
                     scale * np.sum((em + ep)[aperture]) * m.area
@@ -250,7 +254,7 @@ def midpoint_maps(p, q, folder, frequencies_hz=(20.795e9, 20.825e9, 21e9)):
                     else complex(np.nan, np.nan)
                 )
     proxy[~support] = np.nan
-    unperturbed[~support] = np.nan
+    unperturbed[~electric_field_support] = np.nan
     t0 = (
         np.concatenate([np.full(len(line["u"]), line["thread"]) for line in p.lines])
         == 0
@@ -265,6 +269,7 @@ def midpoint_maps(p, q, folder, frequencies_hz=(20.795e9, 20.825e9, 21e9)):
         field_proxy_V_per_m=proxy,
         unperturbed_magnitude_V_per_m=unperturbed,
         support=support,
+        electric_field_support=electric_field_support,
         coherent_transverse_integral_Vm=integrated,
         coherent_integral_full_aperture_in_air=valid,
         thread_endpoint_z_mm=ends,
@@ -285,6 +290,7 @@ def midpoint_maps(p, q, folder, frequencies_hz=(20.795e9, 20.825e9, 21e9)):
     meta = {
         "scope": "Illustrative horizontal sections at each straight thread midpoint z. Sloped-thread likelihood/chord profiles use point-specific z, not these sections.",
         "support": "All four threads use the disk aperture and full bead clearance from measured curved faces plus rigid tilts, with conservative face-gradient bounds. Outside-aperture measured points remain in the fit with zero bead-induced signal and the fixed endpoint-derived background.",
+        "electric_field_support": "Unperturbed electric fields use the disk aperture and pointwise air region between the measured curved faces. They do not require clearance for a finite bead.",
         "aperture_treatment": APERTURE_TREATMENT,
         "coherent_integral": "Unperturbed complex transverse integral at the illustrative horizontal section; valid only when the entire disk aperture lies in air. It is not a measurement integral along a sloped path.",
         "reference_thread_z_mm_T0_T1_T2_T3": NOM_Z_MM.tolist(),
