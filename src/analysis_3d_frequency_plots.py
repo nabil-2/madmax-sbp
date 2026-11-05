@@ -103,7 +103,7 @@ def _draw_example(axis, sample, *, compact=False):
     axis.text(.035, .045, rf"$q={sample['q']:.3f}\ {relation}\ 0.20$",
               transform=axis.transAxes, fontsize=8 if compact else 10,
               color=color, bbox=dict(facecolor="white", edgecolor="none", alpha=.85, pad=2))
-    axis.set_xlabel("Signed scan position [mm]", fontsize=8 if compact else 11)
+    axis.set_xlabel("Bead position [mm]", fontsize=8 if compact else 11)
     axis.set_ylabel(r"Raw complex reflection $\Gamma$", fontsize=8 if compact else 11)
     axis.tick_params(labelsize=7.5 if compact else 9)
     axis.margins(x=.02, y=.16)

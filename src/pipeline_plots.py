@@ -1423,7 +1423,7 @@ def plot_1d_field_map(
 
 def plot_1d_refit_comparison(
     data, previous_dir, *,
-    title="1D refits · corrected nominal geometry versus previous fits",
+    title="1D refits · nominal geometry versus previous fits",
     panel_title_template="{geometry_label} · {quantity_label}",
     x_label="Frequency [GHz]",
     boost_y_label="Power boost β²",

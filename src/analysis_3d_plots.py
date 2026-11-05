@@ -156,7 +156,7 @@ def profile_figures(
     title_template="{case_title} · {frequency_GHz:.3f} GHz",
     real_component_label="Real ΔS22",
     imaginary_component_label="Imaginary ΔS22",
-    x_label="Signed transverse line position [mm]",
+    x_label="Bead position [mm]",
     thread_label_template="T{thread_index}{held_out}\nz: {z_start_mm:.2f}→{z_end_mm:.2f} mm",
     measured_label="Measured",
     model_label="Fitted model",
@@ -243,7 +243,7 @@ def effective_field_figures(
     a,
     *,
     title_template="{case_title} · finite-bead proxy · {frequency_GHz:.3f} GHz",
-    x_label="Signed transverse line position [mm]",
+    x_label="Bead position [mm]",
     y_label_template="T{thread_index}{held_out} · proxy [V/m]",
     measured_label="Measured finite-bead proxy",
     model_label="Fitted finite-bead proxy",
@@ -318,9 +318,9 @@ def geometry_figures(
     record,
     *,
     endpoint_positions_title="Endpoint heights and central disk positions",
-    endpoint_shifts_title="Changes from corrected nominal; search ranges",
+    endpoint_shifts_title="Changes from nominal; search ranges",
     projection_title_template="{coordinate}–z projection",
-    disk_shifts_title="Shifts from corrected nominal",
+    disk_shifts_title="Shifts from nominal",
     disk_slopes_title="Rigid disk slopes",
     view_geometry="fitted",
     view_title="Fitted disk surfaces and all four straight paths",
@@ -337,9 +337,9 @@ def geometry_figures(
     position_annotation_template="{z_mm:.3f}",
     shift_annotation_template="{shift_mm:+.3f}",
     slope_annotation_template="{slope_mrad:+.2f}",
-    nominal_disk_band_label="Corrected nominal disk",
+    nominal_disk_band_label="Nominal disk",
     fitted_disk_band_label="Fitted disk centre",
-    nominal_thread_marker_label="Corrected nominal thread",
+    nominal_thread_marker_label="Nominal thread",
     nominal_disk_label="Nominal disk",
     fitted_disk_label="Fitted disk",
     nominal_thread_label="Nominal thread",
@@ -519,7 +519,7 @@ def geometry_figures(
         "Thread endpoint heights",
         "The upper panel shows endpoint z coordinates along a common mirror-distance axis; row spacing is only for readability. Disk bands show the actual two face positions on the disk axis, including measured shape offsets. "
         "A and B are the minimum and maximum retained signed scan-coordinate locations, not measured mechanical supports. They remain at their recorded x/y positions. "
-        "Each straight path interpolates between its own endpoint pair. The lower panel shows shifts from the corrected nominal and the search ranges in those coordinates. "
+        "Each straight path interpolates between its own endpoint pair. The lower panel shows shifts from the nominal and the search ranges in those coordinates. "
         + SCOPE_DESCRIPTION,
     )
     split_geometry = CASE == "disk_tilts_threads"
@@ -709,7 +709,7 @@ def geometry_figures(
             fig,
             "disk_shifts_and_slopes",
             "Fitted disk shifts and surface slopes",
-            "Left: fitted near-face reference-plane shift from the corrected nominal position. Right: fitted rigid dz/dx and dz/dy in mrad. Dotted capped lines show coordinate search bounds, not uncertainties; gap and bead-clearance constraints further restrict their combinations. Both faces share this fitted rigid tilt, with their separate measured shapes added.",
+            "Left: fitted near-face reference-plane shift from the nominal position. Right: fitted rigid dz/dx and dz/dy in mrad. Dotted capped lines show coordinate search bounds, not uncertainties; gap and bead-clearance constraints further restrict their combinations. Both faces share this fitted rigid tilt, with their separate measured shapes added.",
         )
     else:
         second = entry(
@@ -1040,13 +1040,14 @@ def reference_figure(
     )
 
 
-def residual_figure(
+def residual_figures(
     a,
     control=None,
     *,
     title_template="{case_title} · fit quality",
+    individual_title_template="{case_title} · individual-thread residuals",
     x_label="Frequency [GHz]",
-    combined_y_label="Combined residual [%]",
+    combined_y_label=r"Scale factor $s_\nu$ [%]",
     individual_y_label="Individual residual [%]",
     objective_label_template="Fitted objective · {scope}",
     fit_bins_label_template="{fit_bin_count} quality-selected bins",
@@ -1054,16 +1055,21 @@ def residual_figure(
     thread_label_template="T{thread_index}{held_out}",
     held_out_label=" · held out",
 ):
-    fig, axs = plt.subplots(2, 1, figsize=(6.5, 5.8), layout="constrained", sharex=True)
+    combined_fig, combined_ax = plt.subplots(
+        figsize=(6.5, 3.6), layout="constrained"
+    )
+    individual_fig, individual_ax = plt.subplots(
+        figsize=(6.5, 3.6), layout="constrained"
+    )
     f = a["frequency_hz"] / 1e9
     use = a["eligible"].astype(bool)
-    axs[0].plot(
+    combined_ax.plot(
         f,
         100 * a["relative_residual"],
         color=COLOR,
         label=render_text(objective_label_template, scope=SCOPE),
     )
-    axs[0].plot(
+    combined_ax.plot(
         f[use],
         100 * a["relative_residual"][use],
         ".",
@@ -1072,7 +1078,7 @@ def residual_figure(
         label=render_text(fit_bins_label_template, fit_bin_count=int(use.sum())),
     )
     if control is not None:
-        axs[0].plot(
+        combined_ax.plot(
             control["frequency_hz"] / 1e9,
             100 * control["all_thread_residual"],
             color=GREY,
@@ -1080,7 +1086,7 @@ def residual_figure(
             label=control_label,
         )
     for t in range(4):
-        axs[1].plot(
+        individual_ax.plot(
             f,
             100 * a["relative_residual_by_thread"][:, t],
             lw=1.2,
@@ -1091,26 +1097,29 @@ def residual_figure(
                 held_out=held_out_label if t not in FIT_THREADS else "",
             ),
         )
-    axs[0].set(
+    combined_ax.set(
         ylim=(0, 105),
         title=render_text(title_template, case_title=TITLE),
         ylabel=combined_y_label,
+        xlabel=x_label,
     )
-    axs[1].set(
+    individual_ax.set(
         yscale="log",
         ylim=(1, 1e4),
+        title=render_text(individual_title_template, case_title=TITLE),
         ylabel=individual_y_label,
         xlabel=x_label,
     )
-    for ax in axs:
+    for ax in (combined_ax, individual_ax):
         ax.set_xlim(20, 22)
         ax.grid(alpha=0.15)
         ax.legend(fontsize=7.8, ncol=2)
-    return entry(
-        fig,
+    combined = entry(
+        combined_fig,
         "objective_comparison",
-        "Combined and individual-thread residuals",
-        f"The upper curve uses {SCOPE}; dots mark the {int(use.sum())} profile-quality-selected bins. The lower panel uses a logarithmic vertical scale and the same fitted common coefficient on every thread. "
+        "Scale factor sν",
+        "The normalized combined residual is displayed as a percentage and labelled sν. "
+        f"The curve uses {SCOPE}; dots mark the {int(use.sum())} profile-quality-selected bins. "
         + (
             "T0 is a held-out prediction and does not determine the common coefficient. "
             if len(FIT_THREADS) == 3
@@ -1122,6 +1131,19 @@ def residual_figure(
         )
         + "Equal sample weights within a frequency give stronger signals more influence. A small pooled residual does not imply agreement on each weak thread.",
     )
+    individual = entry(
+        individual_fig,
+        "individual_thread_residuals",
+        "Individual-thread residuals",
+        "Each thread's normalized residual is displayed as a percentage on a logarithmic vertical scale. "
+        "All threads use the same fitted common coefficient. "
+        + (
+            "T0 is a held-out prediction and does not determine the common coefficient."
+            if len(FIT_THREADS) == 3
+            else "All four threads enter the common-scale fit."
+        ),
+    )
+    return [combined, individual]
 
 
 def reference_field_figure(
